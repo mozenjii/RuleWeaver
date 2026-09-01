@@ -1,6 +1,6 @@
 # 10 — Backlog
 
-> **Status, 2026-08-20.** 83 of 134 items are done. `docs/01_PROJECT_STATUS.md` is the
+> **Status, 2026-09-02.** 85 of 137 items are done. `docs/01_PROJECT_STATUS.md` is the
 > authority on what is built; this file is the plan. An item is ticked only when there is
 > an implementation *and* a test — a backlog that overstates progress is worse than one
 > nobody updated, because someone will trust it.

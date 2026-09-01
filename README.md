@@ -43,7 +43,7 @@ OpenFisca / Catala / LegalRuleML / other adapters
 9. **The repository must remain useful even if model vendors change.**
 10. **RuleWeaver must never present itself as an authoritative legal source or legal-advice system.**
 
-## Current status — 2026-08-20
+## Current status — 2026-09-02
 
 ### Decided / researched
 
@@ -96,7 +96,7 @@ See [`docs/01_PROJECT_STATUS.md`](docs/01_PROJECT_STATUS.md) for the detailed st
 ```bash
 python -m venv .venv
 .venv/bin/pip install -e ".[dev]"        # Windows: .venv/Scripts/pip
-pytest                                    # 389 tests
+pytest                                    # 395 tests
 ```
 
 Check a rule package, then run a household through it:
@@ -146,9 +146,9 @@ deliberately seeded faults reviewers caught, the median time spent per rule, and
 approval rate. It warns when those look like rubber-stamping. An unseeded queue is
 reported as *unmeasured*, not as a zero catch rate; the two mean opposite things.
 
-**The bundled identity resolver trusts a header and warns that it is unfit for
-deployment.** Wire in a real identity provider before running this anywhere real — an
-audit log whose reviewer field the client can set is not an audit log.
+The review app now fails closed on identity: configure either a signed session secret or
+a trusted authenticating proxy before serving it anywhere real. Every review page
+requires that identity, and cookie-backed decisions are CSRF-protected.
 
 ### Amendment impact
 

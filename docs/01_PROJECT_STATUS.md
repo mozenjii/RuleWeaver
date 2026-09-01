@@ -1,6 +1,6 @@
 # 01 — Project Status
 
-**Status date:** 2026-08-20  
+**Status date:** 2026-09-02
 **Phase:** the pipeline runs end to end — verified source, extraction, review gate,
 deterministic evaluation, OpenFisca export
 
@@ -69,7 +69,8 @@ Checked items are built and covered by tests. Everything unchecked is genuinely 
 
 - [x] Python package bootstrapped.
 - [x] CI configured.
-- [x] code quality tooling configured (ruff, mypy; both clean).
+- [x] code quality tooling configured (`ruff` clean; `mypy` clean on the configured
+      `src/ruleweaver` scope).
 - [x] diagnostics framework defined.
 - [x] serialization/version strategy implemented.
 
@@ -196,9 +197,9 @@ Keep these up to date once implementation starts:
 | Golden policy corpora | 1 (SNAP, 15 rules from 7 CFR 271.2, 273.9 and 273.10) |
 | Provenance verified against source | **16/16 spans resolve to verbatim clause text** |
 | Deterministic rule features implemented | 12 expression nodes, exceptions, overrides, 4-state values, trace |
-| Tests | 389 passing (`pytest`) |
+| Tests | 395 passing (`pytest`) |
 | Mutation score | **22/22 caught (100%)** |
-| Lint / type check | ruff clean, mypy clean (48 files) |
+| Lint / type check | ruff clean, mypy clean (48 `src/ruleweaver` files) |
 | Validators implemented | 41 distinct `RWxxxx` diagnostics across 6 families |
 | Test generators | boundary + date transition |
 | Amendment impact | semantic diff + dependency closure + outcome comparison |
