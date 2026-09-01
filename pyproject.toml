@@ -8,12 +8,24 @@ authors = [{ name = "Mozenjii", email = "mhbamdm@gmail.com" }]
 readme = "README.md"
 
 # Pydantic carries the IR schema: validation, typed parsing and JSON Schema
-# export all come from one dependency, and docs/13_REPO_STRUCTURE.md requires
-# the IR package to stay free of model-provider and target-runtime imports.
+# export all come from one dependency, and the architecture keeps the IR package
+# free of model-provider and target-runtime imports.
 dependencies = ["pydantic>=2.6"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.14", "mypy>=1.13"]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
+    "ruff>=0.14",
+    "mypy>=1.13",
+    # The repository test suite exercises the optional review application. Keep its
+    # dependencies here so `pip install -e \".[dev]\"` is a complete contributor setup.
+    "sqlalchemy>=2.0",
+    "fastapi>=0.115",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",
+]
 # Model providers are optional extras. The core compiler, evaluator and validators
 # never import them, so a deployment that only executes approved rules installs
 # neither SDK — which is ADR-003 enforced by packaging rather than by convention.
