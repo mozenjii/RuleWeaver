@@ -22,7 +22,7 @@ def published() -> dict:
 
 
 def test_schema_file_exists():
-    assert SCHEMA.exists(), "run the export in docs/13_REPO_STRUCTURE.md to regenerate"
+    assert SCHEMA.exists(), "run `ruleweaver schema` to regenerate the published schema"
 
 
 def test_schema_matches_the_types(published):
