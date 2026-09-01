@@ -5,6 +5,7 @@ CLAUDE.md
 AGENTS.md
 .claude/
 .agents/
+.codex/
 .venv/
 
 # ─── gstack (machine-generated; never commit) ────────────────────────
