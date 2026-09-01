@@ -161,7 +161,7 @@ Checked items are built and covered by tests. Everything unchecked is genuinely 
 
 ### Benchmark
 
-- [ ] corpus selected.
+- [x] corpus selected.
 - [x] source licensing reviewed.
 - [ ] annotation schema.
 - [ ] gold rules.
@@ -172,21 +172,13 @@ Checked items are built and covered by tests. Everything unchecked is genuinely 
 
 ## Immediate next milestone
 
-**M0 — Executable IR without LLMs.**
+**Differential evidence for the OpenFisca export.**
 
-Before building the AI compiler, create a tiny fictional benefit policy by hand and prove that RuleWeaver can represent, validate, execute, trace, and test it.
-
-Exit criteria:
-
-- at least 10 hand-authored rules;
-- parameters that change by date;
-- at least one exception;
-- at least one dependency chain;
-- source spans attached to every rule;
-- deterministic evaluation;
-- generated boundary tests;
-- explicit `UNKNOWN` behavior;
-- execution trace explaining which rule/parameter caused the result.
+The generated package is checked structurally and parses, but the project still lacks
+behavioural evidence that the exported OpenFisca package matches the deterministic
+evaluator. The next milestone is to run equivalent scenarios through both engines and
+compare outputs, using published FNS tables rather than scenario-only overrides where the
+fixture currently depends on them.
 
 ## Health indicators
 
@@ -240,7 +232,7 @@ The mutation harness is what makes that claim worth anything. Its first run scor
 and each of the ten survivors was a real hole: the suite could not detect a deleted
 "notwithstanding" override, could not distinguish conjunction from disjunction in the
 final decision, and never exercised four floor guards. Those are now closed and the score
-is 17/17.
+is 22/22.
 
 ### What ingestion found, 2026-08-20
 

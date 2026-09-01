@@ -257,26 +257,33 @@ carries its citation. Running it under OpenFisca and comparing the results again
 deterministic evaluator is the evidence that would make "exports to OpenFisca" a claim
 about behaviour, and that work has not been done.
 
-## Read this documentation in order
+## Documentation
 
-1. [`docs/00_PROJECT_BRIEF.md`](docs/00_PROJECT_BRIEF.md)
-2. [`docs/01_PROJECT_STATUS.md`](docs/01_PROJECT_STATUS.md)
-3. [`docs/02_PRODUCT_SPEC.md`](docs/02_PRODUCT_SPEC.md)
-4. [`docs/03_ARCHITECTURE.md`](docs/03_ARCHITECTURE.md)
-5. [`docs/04_RULE_IR_SPEC.md`](docs/04_RULE_IR_SPEC.md)
-6. [`docs/05_COMPILER_PIPELINE.md`](docs/05_COMPILER_PIPELINE.md)
-7. [`docs/06_VERIFICATION_SAFETY.md`](docs/06_VERIFICATION_SAFETY.md)
-8. [`docs/07_DATA_BENCHMARK_EVAL.md`](docs/07_DATA_BENCHMARK_EVAL.md)
-9. [`docs/08_ADAPTERS_INTEROP.md`](docs/08_ADAPTERS_INTEROP.md)
-10. [`docs/09_IMPLEMENTATION_ROADMAP.md`](docs/09_IMPLEMENTATION_ROADMAP.md)
-11. [`docs/10_BACKLOG.md`](docs/10_BACKLOG.md)
-12. [`docs/11_DECISIONS.md`](docs/11_DECISIONS.md)
-13. [`docs/12_RESEARCH_REFERENCES.md`](docs/12_RESEARCH_REFERENCES.md)
-14. [`docs/13_REPO_STRUCTURE.md`](docs/13_REPO_STRUCTURE.md)
-15. [`docs/14_GLOSSARY.md`](docs/14_GLOSSARY.md)
-16. [`docs/15_VOCABULARY.md`](docs/15_VOCABULARY.md)
+### Core specifications
 
-## v0.1 definition of success
+- [`docs/00_PROJECT_BRIEF.md`](docs/00_PROJECT_BRIEF.md)
+- [`docs/02_PRODUCT_SPEC.md`](docs/02_PRODUCT_SPEC.md)
+- [`docs/03_ARCHITECTURE.md`](docs/03_ARCHITECTURE.md)
+- [`docs/04_RULE_IR_SPEC.md`](docs/04_RULE_IR_SPEC.md)
+- [`docs/05_COMPILER_PIPELINE.md`](docs/05_COMPILER_PIPELINE.md)
+- [`docs/06_VERIFICATION_SAFETY.md`](docs/06_VERIFICATION_SAFETY.md)
+- [`docs/08_ADAPTERS_INTEROP.md`](docs/08_ADAPTERS_INTEROP.md)
+
+### Project state
+
+- [`docs/01_PROJECT_STATUS.md`](docs/01_PROJECT_STATUS.md)
+- [`docs/09_IMPLEMENTATION_ROADMAP.md`](docs/09_IMPLEMENTATION_ROADMAP.md)
+- [`docs/10_BACKLOG.md`](docs/10_BACKLOG.md)
+- [`docs/11_DECISIONS.md`](docs/11_DECISIONS.md)
+
+### Reference material
+
+- [`docs/07_DATA_BENCHMARK_EVAL.md`](docs/07_DATA_BENCHMARK_EVAL.md)
+- [`docs/12_RESEARCH_REFERENCES.md`](docs/12_RESEARCH_REFERENCES.md)
+- [`docs/14_GLOSSARY.md`](docs/14_GLOSSARY.md)
+- [`docs/15_VOCABULARY.md`](docs/15_VOCABULARY.md)
+
+## System goals
 
 A user can provide a small, authoritative tax/benefit policy source and RuleWeaver can:
 

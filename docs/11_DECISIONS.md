@@ -150,7 +150,7 @@ Values that change through legislation/time should normally be represented as da
 
 ## ADR-014 — Dates use explicit interval semantics
 
-**Status:** Accepted in principle; exact implementation to finalize during M0.
+**Status:** Accepted
 
 ### Decision
 
@@ -582,9 +582,5 @@ would make this a claim about behaviour. Until then it is a claim about structur
 These should be decided with examples/tests, not prematurely:
 
 - entity/group aggregation semantics;
-- exact exception/priority model;
-- period/periodicity algebra;
 - rounding rules;
 - human-required predicate semantics;
-- canonical plugin packaging (license choices settled by ADR-023);
-- canonical plugin packaging.
