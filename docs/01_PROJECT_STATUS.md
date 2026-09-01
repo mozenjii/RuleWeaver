@@ -135,10 +135,13 @@ Checked items are built and covered by tests. Everything unchecked is genuinely 
 - [x] review decision model.
 - [x] approval workflow.
 - [x] source/rule side-by-side UI.
-- [x] edit/reject/approve UX.
+- [x] approve/reject/abstain UX.
+- [ ] validated rule editing workflow.
 - [x] audit log.
 - [x] authenticated reviewer identity — signed tokens or a trusted proxy; the
       application refuses to start with neither.
+- [x] authenticated page access and CSRF protection for cookie-backed decisions.
+- [x] approval blocked when a rule has unresolved validation errors.
 - [x] approval enforced at execution — the evaluator will not run unapproved rules.
 
 ### Adapters

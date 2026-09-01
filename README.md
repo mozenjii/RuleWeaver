@@ -232,7 +232,10 @@ ruleweaver token alice@example.gov
 
 With neither a signing secret nor a trusted proxy configured it refuses to start. It used
 to fall back to trusting a header, which meant a deployment that forgot to wire up identity
-still recorded approvals — against whatever name the client sent.
+still recorded approvals — against whatever name the client sent. All review pages require
+that identity, and decisions made through the signed-session cookie carry a CSRF token.
+Rules with unresolved validation errors cannot be approved. Direct editing is deliberately
+not exposed until an edited rule can be validated and applied as a new package revision.
 
 ### Exporting to OpenFisca
 

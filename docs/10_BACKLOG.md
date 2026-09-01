@@ -136,7 +136,10 @@ Legend:
 - [x] **P1** package approval policy.
 - [x] **P1** minimal review API.
 - [x] **P1** source/rule side-by-side UI.
-- [x] **P1** approve/edit/reject.
+- [x] **P1** approve/reject/abstain.
+- [ ] **P1** validated rule editing and replacement workflow.
+- [x] **P1** authenticated review pages and CSRF-protected decisions.
+- [x] **P1** block approval when validation errors affect a rule.
 - [ ] **P1** ambiguity resolution UI.
 - [ ] **P1** test approval UI.
 - [ ] **P2** reviewer comments.
