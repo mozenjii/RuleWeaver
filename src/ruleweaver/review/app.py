@@ -18,6 +18,10 @@ clock when the rule renders and submits the delta.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import os
+import secrets
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -31,10 +35,31 @@ from ..ir.rules import RulePackage
 from ..verify import validate
 from .adversarial import AdversarialQueue
 from .decisions import Decision, ReviewEvent, Status
-from .identity import resolver_from_env
+from .identity import ENV_SECRET, SESSION_COOKIE, resolver_from_env
 from .store import ReviewStore
 
 TEMPLATES = Path(__file__).parent / "templates"
+SUPPORTED_DECISIONS = tuple(decision for decision in Decision if decision is not Decision.EDIT)
+
+
+def _csrf_token(secret: bytes, reviewer: str, rule_id: str) -> str:
+    payload = f"{reviewer}\0{rule_id}".encode()
+    return hmac.new(secret, payload, hashlib.sha256).hexdigest()
+
+
+def _requires_csrf(request: Request) -> bool:
+    authorization = request.headers.get("Authorization", "")
+    return SESSION_COOKIE in request.cookies and not authorization.lower().startswith("bearer ")
+
+
+def _rule_has_errors(report, rule_id: str) -> bool:
+    for diagnostic in report.errors:
+        affected = diagnostic.details.get("affects", [])
+        if diagnostic.rule_id == rule_id or rule_id in affected:
+            return True
+        if diagnostic.rule_id is None and not affected:
+            return True
+    return False
 
 
 def _rule(package: RulePackage, rule_id: str):
@@ -69,6 +94,7 @@ def create_app(
     store: ReviewStore,
     *,
     reviewer_resolver: Callable[[Request], str] | None = None,
+    csrf_secret: str | None = None,
     seed_rate: float = 0.1,
     salt: str = "",
 ) -> FastAPI:
@@ -78,6 +104,9 @@ def create_app(
     # identity the client chose is worse than refusing to start: it produces a
     # log that looks like evidence.
     resolve_reviewer = reviewer_resolver or resolver_from_env()
+    configured_csrf_secret = csrf_secret or os.environ.get(ENV_SECRET)
+    csrf_key = (configured_csrf_secret.encode() if configured_csrf_secret
+                else secrets.token_bytes(32))
     report = validate(package)
 
     def current_queue() -> AdversarialQueue:
@@ -92,6 +121,7 @@ def create_app(
 
     @app.get("/", response_class=HTMLResponse)
     def queue(request: Request):
+        resolve_reviewer(request)
         rows: list[dict[str, Any]] = [
             {
                 "rule": rule,
@@ -112,6 +142,7 @@ def create_app(
 
     @app.get("/rule/{rule_id}", response_class=HTMLResponse)
     def detail(request: Request, rule_id: str):
+        reviewer = resolve_reviewer(request)
         rule = package.rule(rule_id)
         if rule is None:
             raise HTTPException(404, f"unknown rule: {rule_id}")
@@ -125,7 +156,8 @@ def create_app(
                 "history": log.events_for(rule_id),
                 "diagnostics": [d for d in report.diagnostics if d.rule_id == rule_id],
                 "ambiguities": [a for a in package.ambiguities if rule_id in a.affects],
-                "decisions": list(Decision),
+                "decisions": SUPPORTED_DECISIONS,
+                "csrf_token": _csrf_token(csrf_key, reviewer, rule_id),
             },
         )
 
@@ -136,12 +168,24 @@ def create_app(
         decision: str = Form(...),
         note: str = Form(""),
         duration_seconds: float = Form(0.0),
+        csrf_token: str = Form(""),
     ):
         reviewer = resolve_reviewer(request)
+        if _requires_csrf(request):
+            expected = _csrf_token(csrf_key, reviewer, rule_id)
+            if not hmac.compare_digest(csrf_token, expected):
+                raise HTTPException(403, "the decision form is missing a valid CSRF token")
         try:
             chosen = Decision(decision)
         except ValueError as exc:
             raise HTTPException(400, f"unknown decision: {decision}") from exc
+
+        if chosen is Decision.EDIT:
+            raise HTTPException(400, "editing is not available until edited rules can be "
+                                "validated and applied to the package")
+        if chosen is Decision.APPROVE and _rule_has_errors(report, rule_id):
+            raise HTTPException(409, "this rule has unresolved validation errors and cannot "
+                                "be approved")
 
         seeded = next((s for s in store.seeds() if s["rule_id"] == rule_id), None)
 
@@ -166,6 +210,7 @@ def create_app(
 
     @app.get("/metrics", response_class=HTMLResponse)
     def metrics(request: Request):
+        resolve_reviewer(request)
         queue = current_queue()
         for seed in store.seeds():
             from .adversarial import SeededError

@@ -7,14 +7,17 @@ cannot be recorded without a reason, and an approval expires when its source mov
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from conftest import FIXTURE
 from ruleweaver.ir import RulePackage
 from ruleweaver.review import Decision
 from ruleweaver.review.app import create_app
+from ruleweaver.review.identity import SignedTokenResolver, mint_token
 from ruleweaver.review.store import ReviewStore, build_engine
 
 RULE = "rule.snap.gross_income_test"
@@ -49,6 +52,14 @@ class TestQueue:
         # A status nobody can interpret is a status nobody acts on.
         assert "approved against a source that has" in client.get("/").text
 
+    @pytest.mark.parametrize("path", ["/", f"/rule/{RULE}", "/metrics"])
+    def test_every_page_requires_an_authenticated_reviewer(self, package, store, path):
+        def reject(_request):
+            raise HTTPException(401, "authentication required")
+
+        guarded = TestClient(create_app(package, store, reviewer_resolver=reject))
+        assert guarded.get(path).status_code == 401
+
 
 class TestDetail:
     def test_shows_the_quoted_clause_beside_the_rule(self, client):
@@ -59,7 +70,10 @@ class TestDetail:
     def test_offers_every_decision(self, client):
         body = client.get(f"/rule/{RULE}").text
         for decision in Decision:
+            if decision is Decision.EDIT:
+                continue
             assert decision.value in body
+        assert 'value="edit"' not in body
 
     def test_unknown_rule_is_a_404(self, client):
         assert client.get("/rule/rule.nope").status_code == 404
@@ -94,6 +108,49 @@ class TestDecisions:
 
     def test_unknown_decision_is_refused(self, client):
         assert client.post(f"/rule/{RULE}/decide", data={"decision": "looks_fine"}).status_code == 400
+
+    def test_edit_is_not_offered_until_an_edited_rule_can_be_applied(self, client, store):
+        response = client.post(f"/rule/{RULE}/decide", data={"decision": "edit"})
+        assert response.status_code == 400
+        assert store.events(RULE) == []
+
+    def test_blocking_diagnostics_cannot_be_approved(self, package, store):
+        blocked = package.model_copy(deep=True)
+        blocked.ambiguities[0] = blocked.ambiguities[0].model_copy(update={
+            "blocking": True,
+            "affects": [RULE],
+            "resolution": None,
+        })
+        guarded = TestClient(create_app(blocked, store, reviewer_resolver=lambda request: "alice"))
+
+        response = guarded.post(f"/rule/{RULE}/decide", data={"decision": "approve"})
+
+        assert response.status_code == 409
+        assert store.events(RULE) == []
+
+    def test_cookie_authenticated_decisions_require_a_csrf_token(self, package, store):
+        secret = "s" * 48
+        app = create_app(
+            package,
+            store,
+            reviewer_resolver=SignedTokenResolver(secret),
+            csrf_secret=secret,
+        )
+        guarded = TestClient(app)
+        guarded.cookies.set("rw_session", mint_token("alice", secret))
+
+        missing = guarded.post(f"/rule/{RULE}/decide", data={"decision": "approve"})
+        assert missing.status_code == 403
+
+        detail = guarded.get(f"/rule/{RULE}")
+        token = re.search(r'name="csrf_token" value="([^"]+)"', detail.text)
+        assert token is not None
+        accepted = guarded.post(
+            f"/rule/{RULE}/decide",
+            data={"decision": "approve", "csrf_token": token.group(1)},
+            follow_redirects=False,
+        )
+        assert accepted.status_code == 303
 
     def test_history_appears_after_deciding(self, client):
         client.post(f"/rule/{RULE}/decide",

@@ -64,6 +64,7 @@
   <h2>Decision</h2>
   <form method="post" action="/rule/{{ rule.id }}/decide" id="decide">
     <input type="hidden" name="duration_seconds" id="duration_seconds" value="0">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
     <label for="decision">What is your judgement?</label>
     <select name="decision" id="decision">
