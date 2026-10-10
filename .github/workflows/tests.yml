@@ -24,10 +24,11 @@ jobs:
           cache: pip
 
       # The review extra is installed here because the gate is tested here: the audit log,
-      # the reviewer application and reviewer identity. Without it those tests skip, and a
-      # suite that skips the gate is not evidence the gate works.
+      # the reviewer application and reviewer identity. OpenFisca is installed because the
+      # export is run here, beside the evaluator. Without either, those tests skip, and a
+      # suite that skips them is not evidence of anything they cover.
       - name: Install
-        run: python -m pip install --upgrade pip && pip install -e ".[dev,review]"
+        run: python -m pip install --upgrade pip && pip install -e ".[dev,review,openfisca]"
 
       - name: Lint
         run: ruff check .

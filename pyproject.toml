@@ -32,6 +32,11 @@ review = [
     "python-multipart>=0.0.9",
 ]
 
+# OpenFisca runs the exported country package in the equivalence harness. Pinned to the
+# major version the harness has been run against: the generated code uses its entity,
+# period and simulation-builder APIs, which have changed between majors.
+openfisca = ["openfisca-core>=45.0,<46"]
+
 [project.scripts]
 ruleweaver = "ruleweaver.cli:main"
 
