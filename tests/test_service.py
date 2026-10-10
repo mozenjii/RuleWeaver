@@ -148,6 +148,43 @@ class TestTheGate:
                 "value": "402.0000"} in trace
 
 
+class TestDecisionRecord:
+    """Enough to answer "why did you compute this?" for one person, months later."""
+
+    def test_the_record_pins_the_package_and_the_review_state(self, api, auth, package,
+                                                               engine):
+        from ruleweaver.hashing import digest
+
+        approve(package, engine)
+        record = evaluate(api, auth).json()["record"]
+        _, head = ReviewStore(engine).snapshot()
+        assert record["package_hash"] == digest(package.model_dump(mode="json"))
+        assert record["review_log_head"] == head
+        assert len(record["rules_applied"]) == 15
+
+    def test_a_later_approval_moves_the_head(self, api, auth, package, engine):
+        """Two answers given under different review states must be distinguishable."""
+        before = evaluate(api, auth).json()["record"]["review_log_head"]
+        approve(package, engine)
+        after = evaluate(api, auth).json()["record"]["review_log_head"]
+        assert before != after
+
+    def test_withheld_and_blocked_rules_are_not_listed_as_applied(self, api, auth,
+                                                                   package, engine):
+        approve(package, engine, skip=("rule.snap.standard_deduction_minimum",))
+        applied = evaluate(api, auth).json()["record"]["rules_applied"]
+        assert "rule.snap.standard_deduction_minimum" not in applied
+        assert "rule.snap.standard_deduction_computed" not in applied
+
+    def test_the_notice_claims_no_reviewer_it_cannot_name(self):
+        assert "named reviewer" not in NOTICE
+        assert "not legal advice" in NOTICE
+
+    def test_healthz_is_an_alias_for_container_health_checks(self, api):
+        """The Dockerfile's HEALTHCHECK calls /healthz whichever app the image runs."""
+        assert api.get("/healthz").json()["status"] == "ok"
+
+
 class TestInputs:
     def test_an_explicit_null_is_unknown_not_zero(self, api, auth, package, engine):
         approve(package, engine)

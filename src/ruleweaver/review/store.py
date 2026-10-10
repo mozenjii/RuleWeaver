@@ -197,6 +197,22 @@ class ReviewStore:
             log.append(event)
         return log
 
+    def snapshot(self) -> tuple[ReviewLog, str]:
+        """The log and the chain head it ends at, read in one pass.
+
+        A decision computed from this log can cite the head, and the head pins exactly
+        which approvals were in force: replaying the log up to it reproduces them.
+        Reading the two separately would let an approval land in between.
+        """
+        log = ReviewLog()
+        head = GENESIS
+        query = select(review_events).order_by(review_events.c.seq)
+        with self.engine.connect() as conn:
+            for row in conn.execute(query):
+                log.append(self._row_to_event(row))
+                head = row.chain_hash
+        return log, head
+
     def verify_chain(self) -> tuple[bool, str | None]:
         """Recompute the chain. Returns (intact, first_broken_event_id).
 

@@ -37,6 +37,7 @@ from sqlalchemy.engine import Engine
 
 from .. import __version__
 from ..approval import approved_subset
+from ..hashing import digest
 from ..ir.rules import RulePackage
 from ..review.store import ReviewStore
 from ..runtime import Context, Evaluator, ParameterTable
@@ -44,9 +45,13 @@ from ..runtime.values import UNKNOWN, Value, is_unknown
 from ..verify import validate
 from .keys import ApiKey, KeyStore
 
+# Says only what the code can back. An earlier version claimed "a named reviewer"
+# approved the rules; nothing named one, and an unsubstantiated claim about who checked
+# a benefit calculation is the kind a consumer-protection regulator reads literally.
 NOTICE = (
-    "Computed by RuleWeaver from rules a named reviewer approved against the cited "
-    "regulation. It is not legal advice and not an official determination."
+    "Computed by RuleWeaver from the rules this deployment's review log records as "
+    "approved; `record` identifies the exact package and review state used. It is not "
+    "legal advice and not an official determination."
 )
 
 MAX_MEMBERS = 50
@@ -117,6 +122,8 @@ def create_api(packages: dict[str, RulePackage], engine: Engine) -> FastAPI:
     """
     store = ReviewStore(engine)
     keys = KeyStore(engine)
+    package_hashes = {pid: digest(p.model_dump(mode="json"))
+                      for pid, p in packages.items()}
     app = FastAPI(title="RuleWeaver", version=__version__,
                   description="Approved, source-linked rules, evaluated deterministically.")
 
@@ -137,6 +144,7 @@ def create_api(packages: dict[str, RulePackage], engine: Engine) -> FastAPI:
             raise HTTPException(404, f"no package {package_id!r}")
         return package
 
+    @app.get("/healthz", include_in_schema=False)
     @app.get("/v1/health")
     def health():
         try:
@@ -172,7 +180,8 @@ def create_api(packages: dict[str, RulePackage], engine: Engine) -> FastAPI:
         if errors:
             raise HTTPException(422, {"errors": errors})
 
-        subset, report = approved_subset(package, store.load_log())
+        log, head = store.snapshot()
+        subset, report = approved_subset(package, log)
         ctx = Context(household=household, members=members,
                       on_date=body.on_date.isoformat())
         evaluated = Evaluator(subset, ParameterTable(subset)).run(copy.deepcopy(ctx))
@@ -196,6 +205,14 @@ def create_api(packages: dict[str, RulePackage], engine: Engine) -> FastAPI:
                 "approved": len(report.approved) - len(report.withheld),
                 "blocked": sorted(report.blocked),
                 "withheld": sorted(report.withheld),
+            },
+            # Enough to answer "why did you compute this?" months later: the exact
+            # package, the review state it was gated by, and the rules that ran.
+            "record": {
+                "package_hash": package_hashes[package_id],
+                "review_log_head": head,
+                "rules_applied": sorted(r.id for r in subset.rules),
+                "engine_version": __version__,
             },
             "notice": NOTICE,
         }
