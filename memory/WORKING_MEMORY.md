@@ -73,3 +73,10 @@ Last updated: 2026-10-10, at commit `9060e4f` (76 commits on the branch).
 - The OpenFisca export imports OpenFisca-Core, which is AGPL-3.0-or-later.
 - Before each push: `ruff check src tests`, `mypy src`, and `pytest` on both an
   all-extras and a base install. Update `research/REQUIREMENTS.md` and `CHANGELOG.md`.
+
+## Handoff to the local session
+
+`memory/LOCAL_SESSION_PROMPT.md` is the prompt for the Claude Code session on the
+owner's machine: pull first, merge any local memory into this file, then revise the
+architecture and documentation to the revised plan (ADR-032, R-25). The cloud session
+leaves the docs alone until that is pushed, so the two do not conflict.
