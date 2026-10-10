@@ -444,9 +444,10 @@ avoid.
 
 ### Why not a flag on the rule
 
-Status is derived from the log, so a rule whose clause was re-fetched and changed falls out
-of the approved set without anyone remembering to revoke it. A stored flag would need
-somebody to notice, and nobody ever does.
+Status is derived from the log and embedded-span hashes. Editing the rule, table value
+or cited span makes approval stale. **2026-10-10 clarification:** changing source snapshot
+bytes alone does not update those hashes; complete verified source-version binding is
+not built (R-43). Do not claim re-fetching alone revokes an approval.
 
 ---
 

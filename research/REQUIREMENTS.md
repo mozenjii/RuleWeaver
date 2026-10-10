@@ -104,7 +104,7 @@ workflow a built feature. No implementation is added by this documentation pass.
 | R-40 | Automated concept/definition/parameter extraction and source cross-reference linking as optional proposal passes, with diagnostics and source evidence | P2 | ⬜ | old pipeline/product claims; current passes are segmentation and rule proposals; frozen pending demonstrated need |
 | R-41 | Exception and dependency/combinatorial test generation plus a property-based suite; preserve human policy-intent tests separately | P2 | 🟡 | boundary/date/mutation tooling exists; these additional generators/framework do not |
 | R-42 | Public independently annotated benchmark: gold source links, rules, tests, ambiguity labels, metrics and reproducible runner | P2 | ⬜ | old benchmark promise; current SNAP fixture is not independent expert validation |
-| R-43 | Typed provenance relations and durable end-to-end source/run/review/test lineage inside the content pack, without a standards-export dependency | P1 | 🟡 | source spans, extraction run records, hashes and review events exist; unified relation model does not |
+| R-43 | Typed provenance relations, binding approvals to verified source versions, and durable end-to-end source/run/review/test lineage inside the content pack, without a standards-export dependency | P1 | 🟡 | source spans, extraction run records, hashes and review events exist; unified relation model does not |
 | R-44 | Mechanically scoped contradiction/completeness checks and multi-axis time; close documented period compatibility/prorating, clamp-bound, exception-tie and override-severity gaps without silently weakening the spec | P2 | ⬜ | old architecture, ADR-020 and `docs/04_RULE_IR_SPEC.md`; current implementation uses effective intervals |
 | R-45 | Review surface for ambiguity resolution, policy-intent/test approval and dependency/change history; blind dual-encoding workflow if required by the content owner | P1 | 🟡 | rule editing, decisions and diagnostics exist; complete review surface does not |
 | R-46 | England Universal Credit core plus April-uprating reference content, including source/reuse verification and independent known-answer cases; start only after the owner's decision | P2 | ⬜ | ADR-032; candidate from simulated reviews, not customer evidence |
@@ -118,7 +118,7 @@ correctness, current-law coverage, reviewer qualification or market demand.
 |---|---|
 | R-01 | `src/ruleweaver/review/seeding.py`, `tests/test_seeding.py`: queue faults and aggregate metrics; not proof qualified humans detect real interpretation errors |
 | R-02 | `src/ruleweaver/review/app.py`, `tests/test_review_app.py`: edited rule submitted and original remains unapproved |
-| R-03 | `src/ruleweaver/approval.py`, `tests/test_parameter_gate.py`: rule and table hashes, source changes stale approvals, unsourced/empty value diagnostics |
+| R-03 | `src/ruleweaver/approval.py`, `tests/test_parameter_gate.py`: rule and table hashes, embedded-span changes stale approvals, unsourced/empty value diagnostics |
 | R-04 | `examples/snap/rules.json`, `tests/test_snap_tables.py`: pinned FY2026 figures for the 48 states/DC and tested sizes 1–8; R-22/R-36/R-37 remain open |
 | R-08/R-09/R-14/R-15 | `src/ruleweaver/service/api.py`, `src/ruleweaver/review/app.py`, `tests/test_service.py`, `tests/test_review_app.py`, `Dockerfile`: replay records, bounded inputs, authenticated pages, health checks; not a hosted service or certified deployment |
 | R-12 | `SECURITY.md`: disclosure policy and contact; not a security certification |
