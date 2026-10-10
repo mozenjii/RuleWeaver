@@ -213,5 +213,16 @@ separate OpenFisca maintenance decision under the frozen adapter scope.
 
 Final dependency scan: two duplicate records for the one retained pytest advisory;
 setuptools findings are resolved. No installed production runtime advisory reported.
-The shared private-root CI step parses as YAML and Bash; remote CI must confirm the
-Linux matrix and container job after push.
+The shared private-root CI step parses as YAML and Bash. Remote CI on the integrated
+code passed all five jobs: core, Python 3.11/3.12/3.13 and package (wheel/container).
+
+## Remote synchronization receipt
+
+Ordinary pushes synchronized main at `ad2a6b8` and the continuation branch at `2824dc8`.
+Main CI passed: https://github.com/mozenjii/RuleWeaver/actions/runs/38078675801.
+Continuation CI passed: https://github.com/mozenjii/RuleWeaver/actions/runs/38078675590.
+The final handoff-only commit records these receipts; it changes no source or workflow.
+Both source branches are ancestors of main, the working tree is clean, and no local
+instruction/configuration file is tracked. The push hook did not locate the virtual
+environment; the explicit local gates and remote jobs above provide verification.
+Fresh-install ruff and mypy also pass with current tools, checking 55 source files.
