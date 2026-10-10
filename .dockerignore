@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+**/__pycache__
+*.db
+*.db-journal
+build
+dist
+tests
+docs
+.env
+.env.*
