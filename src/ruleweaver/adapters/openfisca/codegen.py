@@ -523,5 +523,18 @@ def export(
     result.files["__init__.py"] = _package_init(package)
     result.files["entities.py"] = _entities()
     result.files["variables.py"] = _module(package, classes, names)
-    result.files.update(_parameters_yaml(package, result.diagnostics))
+    exported_parameters = package
+    if require_approval:
+        # A table nobody approved is not exported: the gate covers numbers as well as
+        # rules, and a rule reading a missing table fails loudly rather than silently.
+        unapproved = sorted(report.parameters_blocked)
+        if unapproved:
+            result.diagnostics.append(Diagnostic(
+                "RW8002", "error",
+                f"{len(unapproved)} parameter table(s) are not approved and were not "
+                f"exported: {', '.join(unapproved)}",
+                suggestion="review the tables as well as the rules"))
+        exported_parameters = package.model_copy(update={"parameters": [
+            p for p in package.parameters if p.id in report.parameters_approved]})
+    result.files.update(_parameters_yaml(exported_parameters, result.diagnostics))
     return result

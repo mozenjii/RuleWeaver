@@ -274,6 +274,21 @@ def _provenance(pkg: RulePackage, report: Report) -> None:
             report.add(Diagnostic(
                 "RW7003", "warning", f"parameter {param.id} has no source span",
                 object_id=param.id))
+        if not param.values:
+            # Availability. A table the package declares but never fills makes every
+            # rule that reads it evaluate to unknown, which is correct and surprising.
+            report.add(Diagnostic(
+                "RW3011", "warning",
+                f"parameter {param.id} has no values; rules that read it evaluate to unknown",
+                object_id=param.id,
+                suggestion="add the published table, with a source for each value"))
+        for value in param.values:
+            if not value.sources and not param.sources:
+                report.add(Diagnostic(
+                    "RW7004", "warning",
+                    f"a value of {param.id} from {value.effective_from} has no source: "
+                    "nothing says where the number was published",
+                    object_id=param.id))
 
 
 def _spans_resolve(pkg: RulePackage, report: Report, corpus) -> None:

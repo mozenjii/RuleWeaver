@@ -53,12 +53,14 @@ def edited_rule_hash(edited_to: dict | None) -> str | None:
     the edit is not a valid rule, which no package rule can match.
     """
     from ..approval import rule_digest
-    from ..ir.rules import Rule
+    from ..ir.rules import Parameter, Rule
 
-    try:
-        return rule_digest(Rule.model_validate(edited_to))
-    except Exception:
-        return None
+    for model in (Rule, Parameter):
+        try:
+            return rule_digest(model.model_validate(edited_to))
+        except Exception:
+            continue
+    return None
 
 
 def _now() -> str:

@@ -52,6 +52,9 @@ class ParameterValue(Base):
     value: JsonDecimal | str | bool
     # Dimension coordinates this value applies at, e.g. {"household_size": "3"}.
     at: dict[str, str] = Field(default_factory=dict)
+    # Where this number was published — the annual table, notice or memo. The parameter's
+    # own `sources` say what the parameter means; these say where each value came from.
+    sources: list[SourceSpan] = Field(default_factory=list)
 
 
 class Parameter(Base):

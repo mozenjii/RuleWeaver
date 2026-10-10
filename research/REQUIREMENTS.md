@@ -17,7 +17,7 @@ up to what the project should be able to claim.
 |---|---|---|---|---|
 | R-01 | Seeded faults are actually planted in the review queue, reviewers are told such tests exist, and catch-rate metrics are aggregate and pseudonymised by default | P0 | ✅ | #01 #07 #11 #12 #14 #20; monitoring limits #08 #13 |
 | R-02 | "Edit" works from the form and approves only the corrected rule | P0 | ✅ | verified fact 2 |
-| R-03 | Parameters are sourced, dated objects inside the approval gate, with a diagnostic for missing values | P0 | ⬜ | #01 #03 #09 #20 |
+| R-03 | Parameters are sourced, dated objects inside the approval gate, with a diagnostic for missing values | P0 | ✅ | #01 #03 #09 #20 |
 | R-04 | The shipped example package computes: complete tables, each value sourced | P0 | ⬜ | verified fact 3 |
 | R-05 | The audit chain resists an administrator: keyed chain with a key held outside the database, plus checkpoint export and verify | P0 | ⬜ | #14 #16 #20 |
 | R-06 | One identity per reviewer (OIDC/SSO or per-user keys), not one shared secret that can mint any name; author and approver kept separate | P0 | ⬜ | #04 #07 #16 #20 |

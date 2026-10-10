@@ -8,6 +8,15 @@ that matches it (see `.github/workflows/release.yml`).
 
 ### Safety
 
+- Parameter tables pass the approval gate like rules. An unapproved table supplies no
+  values, so anything reading it is unknown; changing a number or its source makes the
+  approval stale, so an annual uprating is reviewed. Each value can cite where it was
+  published. New diagnostics: `RW3011` (a table with no values) and `RW7004` (a value with
+  no source).
+- An edit approves only the corrected rule; it used to approve the rule it corrected.
+- The review app plants faults at a disclosed rate and measures the catch rate, which no
+  longer counts unreviewed faults as misses.
+- Every page of the review app needs an identity, and cross-site decisions are refused.
 - `--partial` no longer runs a rule whose "notwithstanding" override is unapproved. It
   used to give the SNAP baseline household a standard deduction of 180, below the 204 the
   regulation guarantees; the answer is now unknown, and the report lists the rule as

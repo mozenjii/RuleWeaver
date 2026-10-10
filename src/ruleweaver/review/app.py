@@ -41,10 +41,11 @@ TEMPLATES = Path(__file__).parent / "templates"
 
 
 def _rule(package: RulePackage, rule_id: str):
-    rule = package.rule(rule_id)
-    if rule is None:
-        raise HTTPException(404, f"unknown rule: {rule_id}")
-    return rule
+    """The rule or parameter table under review — both pass the same gate."""
+    item = package.rule(rule_id) or package.parameter(rule_id)
+    if item is None:
+        raise HTTPException(404, f"unknown rule or parameter: {rule_id}")
+    return item
 
 
 def _rule_hash(package: RulePackage, rule_id: str) -> str:
@@ -75,12 +76,13 @@ def _correction(raw: str, rule_id: str) -> dict:
     """
     import json
 
-    from ..ir.rules import Rule
+    from ..ir.rules import Parameter, Rule
 
+    model = Parameter if rule_id.startswith("param.") else Rule
     if not raw.strip():
         raise HTTPException(400, "an edit must include the corrected rule")
     try:
-        rule = Rule.model_validate(json.loads(raw))
+        rule = model.model_validate(json.loads(raw))
     except Exception as exc:
         raise HTTPException(400, f"the corrected rule is not a valid rule: {exc}") from exc
     if rule.id != rule_id:
@@ -142,12 +144,12 @@ def create_app(
     def status_of(rule_id: str) -> Status:
         return status_of_with(store.load_log(), rule_id)
 
-    def shown(rule_id: str, log) -> tuple[Rule | None, dict | None]:
-        """The rule a reviewer sees: a pending planted fault, or the rule itself."""
+    def shown(rule_id: str, log):
+        """What a reviewer sees: a pending planted fault, or the rule or table itself."""
         seed = pending_seed(store, log, rule_id) if seed_rate > 0 else None
         if seed is not None:
             return Rule.model_validate(seed["mutated_rule"]), seed
-        return package.rule(rule_id), None
+        return _rule(package, rule_id), None
 
     @app.get("/healthz")
     def healthz():
@@ -170,10 +172,21 @@ def create_app(
         rows: list[dict[str, Any]] = [
             {
                 "rule": rule,
+                "kind": rule.kind,
+                "note": rule.interpretation.note,
                 "status": status_of(rule.id),
                 "diagnostics": [d for d in report.diagnostics if d.rule_id == rule.id],
             }
             for rule in package.rules
+        ] + [
+            {
+                "rule": parameter,
+                "kind": "parameter table",
+                "note": parameter.note,
+                "status": status_of(parameter.id),
+                "diagnostics": [d for d in report.diagnostics if d.object_id == parameter.id],
+            }
+            for parameter in package.parameters
         ]
         # Unreviewed first — a queue sorted by id buries the work.
         order = {Status.UNREVIEWED: 0, Status.STALE: 1, Status.EDIT_PENDING: 2,
@@ -189,8 +202,7 @@ def create_app(
     @app.get("/rule/{rule_id}", response_class=HTMLResponse)
     def detail(request: Request, rule_id: str):
         resolve_reviewer(request)
-        if package.rule(rule_id) is None:
-            raise HTTPException(404, f"unknown rule: {rule_id}")
+        _rule(package, rule_id)
         log = store.load_log()
         rule, _ = shown(rule_id, log)
         return templates.TemplateResponse(
@@ -200,7 +212,8 @@ def create_app(
                 "package": package,
                 "status": status_of(rule_id),
                 "history": log.events_for(rule_id),
-                "diagnostics": [d for d in report.diagnostics if d.rule_id == rule_id],
+                "diagnostics": [d for d in report.diagnostics
+                                if rule_id in (d.rule_id, d.object_id)],
                 "ambiguities": [a for a in package.ambiguities if rule_id in a.affects],
                 "decisions": list(Decision),
             },

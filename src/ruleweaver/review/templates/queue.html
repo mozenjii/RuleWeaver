@@ -32,11 +32,11 @@
       <td><span class="status status-{{ row.status.value }}">{{ row.status.value.replace('_', ' ') }}</span></td>
       <td>
         <a href="/rule/{{ row.rule.id }}">{{ row.rule.id }}</a>
-        {% if row.rule.interpretation.note %}
-          <div class="muted" style="font-size:.85em">{{ row.rule.interpretation.note|truncate(110) }}</div>
+        {% if row.note %}
+          <div class="muted" style="font-size:.85em">{{ row.note|truncate(110) }}</div>
         {% endif %}
       </td>
-      <td class="muted">{{ row.rule.kind }}</td>
+      <td class="muted">{{ row.kind }}</td>
       <td class="muted">
         {% for s in row.rule.sources %}{{ s.citation or s.source_id }}{% if not loop.last %}, {% endif %}{% endfor %}
       </td>

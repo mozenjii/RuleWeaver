@@ -29,26 +29,39 @@ from dataclasses import dataclass, field
 
 from .hashing import digest
 from .ir import RulePackage
+from .ir.rules import Parameter, Rule
 from .review.decisions import ReviewLog, Status
 
 
-def rule_digest(rule) -> str:
-    """Digest of a rule's full structured form — what the reviewer approved."""
-    return digest(rule.model_dump(mode="json", by_alias=True))
+def rule_digest(item) -> str:
+    """Digest of a rule's or parameter's full structured form — what the reviewer approved.
+
+    For a parameter that includes every dated value, so changing a number moves the
+    hash and the old approval stops applying: an uprating is a reviewable change.
+    """
+    return digest(item.model_dump(mode="json", by_alias=True))
 
 
-def source_digest(rule) -> str:
-    """Digest of the source spans a rule cites.
+def source_digest(item) -> str:
+    """Digest of the source spans an item cites, including a parameter's per-value sources.
 
     Separate from `rule_digest` so the two staleness causes stay distinguishable: an
     edited rule and a moved clause are different events and want different handling.
     """
-    return digest([s.model_dump(mode="json") for s in rule.sources])
+    spans = [s.model_dump(mode="json") for s in item.sources]
+    for value in getattr(item, "values", []):
+        spans.extend(s.model_dump(mode="json") for s in value.sources)
+    return digest(spans)
 
 
 def current_hashes(package: RulePackage) -> dict[str, tuple[str, str]]:
-    """Every rule's (rule_hash, source_hash) as they are *now*."""
-    return {r.id: (rule_digest(r), source_digest(r)) for r in package.rules}
+    """Every reviewable item's (hash, source_hash) as it is *now*: rules and parameters.
+
+    Parameters are reviewed like rules. A rule is only as right as the numbers it reads,
+    and those numbers change every year.
+    """
+    items: list[Rule | Parameter] = [*package.rules, *package.parameters]
+    return {item.id: (rule_digest(item), source_digest(item)) for item in items}
 
 
 class NotApproved(Exception):
@@ -58,7 +71,8 @@ class NotApproved(Exception):
         self.statuses = statuses
         lines = "\n".join(f"  {rid}: {st.value}" for rid, st in sorted(statuses.items()))
         super().__init__(
-            f"{len(statuses)} rule(s) are not approved for execution:\n{lines}\n"
+            f"{len(statuses)} rule(s) or parameter table(s) are not approved for "
+            f"execution:\n{lines}\n"
             "Review them first, or pass the package through approved_subset() and accept "
             "that determinations resting on unapproved rules will be unknown."
         )
@@ -70,12 +84,16 @@ class GateReport:
 
     approved: list[str] = field(default_factory=list)
     blocked: dict[str, Status] = field(default_factory=dict)
+    # Parameters pass the same gate. An unapproved table supplies no values, so anything
+    # reading it is unknown.
+    parameters_approved: list[str] = field(default_factory=list)
+    parameters_blocked: dict[str, Status] = field(default_factory=dict)
     # Approved, but not run by `approved_subset`: the reason, by rule id.
     withheld: dict[str, str] = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
-        return not self.blocked
+        return not self.blocked and not self.parameters_blocked
 
     def __str__(self) -> str:
         if not self.approved and not self.blocked:
@@ -88,19 +106,25 @@ class GateReport:
             parts.append(f"  {name:28} {counts[name]}")
         for rule_id, reason in sorted(self.withheld.items()):
             parts.append(f"  withheld {rule_id}: {reason}")
+        if self.parameters_approved or self.parameters_blocked:
+            parts.append(f"parameters: {len(self.parameters_approved)} approved, "
+                         f"{len(self.parameters_blocked)} blocked")
         return "\n".join(parts)
 
 
 def check(package: RulePackage, log: ReviewLog) -> GateReport:
-    """Classify every rule in the package as approved or blocked."""
+    """Classify every rule and parameter in the package as approved or blocked."""
     report = GateReport()
-    for rule_id, (rh, sh) in current_hashes(package).items():
-        status = log.status(rule_id, rule_hash=rh, source_hash=sh)
+    rule_ids = {r.id for r in package.rules}
+    for item_id, (rh, sh) in current_hashes(package).items():
+        status = log.status(item_id, rule_hash=rh, source_hash=sh)
+        is_rule = item_id in rule_ids
         if status is Status.APPROVED:
-            report.approved.append(rule_id)
+            (report.approved if is_rule else report.parameters_approved).append(item_id)
         else:
-            report.blocked[rule_id] = status
+            (report.blocked if is_rule else report.parameters_blocked)[item_id] = status
     report.approved.sort()
+    report.parameters_approved.sort()
     return report
 
 
@@ -134,7 +158,12 @@ def approved_subset(package: RulePackage, log: ReviewLog) -> tuple[RulePackage, 
                         f"overridden by {rule.id}, which is not approved")
                     changed = True
 
-    subset = package.model_copy(update={"rules": [r for r in package.rules if r.id in keep]})
+    # An unapproved parameter keeps its declaration and loses its values, so a rule that
+    # reads it gets unknown rather than a number nobody has checked.
+    parameters = [p if p.id in report.parameters_approved else p.model_copy(update={"values": []})
+                  for p in package.parameters]
+    subset = package.model_copy(update={
+        "rules": [r for r in package.rules if r.id in keep], "parameters": parameters})
     return subset, report
 
 
@@ -146,5 +175,5 @@ def enforce(package: RulePackage, log: ReviewLog) -> RulePackage:
     """
     report = check(package, log)
     if not report.ok:
-        raise NotApproved(report.blocked)
+        raise NotApproved({**report.blocked, **report.parameters_blocked})
     return package

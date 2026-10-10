@@ -90,7 +90,8 @@ class TestEnforce:
         with pytest.raises(NotApproved) as exc:
             enforce(package, ReviewLog())
         assert "not approved for execution" in str(exc.value)
-        assert len(exc.value.statuses) == len(package.rules)
+        # Rules and parameter tables pass the same gate.
+        assert len(exc.value.statuses) == len(package.rules) + len(package.parameters)
 
     def test_returns_the_package_when_everything_is_approved(self, package):
         assert enforce(package, approve_all(package)) is package

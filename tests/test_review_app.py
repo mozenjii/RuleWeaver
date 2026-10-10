@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 
 from conftest import FIXTURE
 from ruleweaver.ir import RulePackage
-from ruleweaver.review import Decision
+from ruleweaver.review import Decision, Status
 from ruleweaver.review.app import create_app
 from ruleweaver.review.store import ReviewStore, build_engine
 
@@ -68,7 +68,9 @@ class TestQueue:
             assert rule.id in body
 
     def test_shows_the_pending_count(self, client, package):
-        assert f"<strong>{len(package.rules)}</strong> awaiting review" in client.get("/").text
+        # Parameter tables are reviewed alongside rules.
+        pending = len(package.rules) + len(package.parameters)
+        assert f"<strong>{pending}</strong> awaiting review" in client.get("/").text
 
     def test_explains_what_stale_means(self, client):
         # A status nobody can interpret is a status nobody acts on.
@@ -252,3 +254,33 @@ class TestHardening:
         r = client.post(f"/rule/{RULE}/decide", data={"decision": "approve"},
                         headers={"Origin": "http://testserver"}, follow_redirects=False)
         assert r.status_code == 303
+
+
+class TestParameterReview:
+    PARAM = "param.snap.earned_income_deduction_rate"
+
+    def test_tables_appear_in_the_queue(self, client):
+        assert self.PARAM in client.get("/").text
+        assert "parameter table" in client.get("/").text
+
+    def test_a_table_can_be_approved(self, client, store, package):
+        from ruleweaver.approval import rule_digest, source_digest
+
+        r = client.post(f"/rule/{self.PARAM}/decide", data={"decision": "approve"},
+                        follow_redirects=False)
+        assert r.status_code == 303
+        param = package.parameter(self.PARAM)
+        assert store.load_log().status(self.PARAM, rule_hash=rule_digest(param),
+                                       source_hash=source_digest(param)) is Status.APPROVED
+
+    def test_a_table_can_be_corrected_by_edit(self, client, package):
+        from decimal import Decimal
+
+        param = package.parameter(self.PARAM)
+        fixed = param.model_copy(update={"values": [
+            v.model_copy(update={"value": Decimal("0.25")}) for v in param.values]})
+        r = client.post(f"/rule/{self.PARAM}/decide", follow_redirects=False, data={
+            "decision": "edit", "note": "rate changed",
+            "edited_to": fixed.model_dump_json(by_alias=True)})
+        assert r.status_code == 303
+        assert "edit_pending" in client.get(f"/rule/{self.PARAM}").text

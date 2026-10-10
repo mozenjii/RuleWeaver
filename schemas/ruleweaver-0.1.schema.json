@@ -1890,6 +1890,13 @@
           },
           "title": "At",
           "type": "object"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceSpan"
+          },
+          "title": "Sources",
+          "type": "array"
         }
       },
       "required": [

@@ -42,7 +42,7 @@
 
   <div>
     <div class="panel">
-      <h2>Proposed rule</h2>
+      <h2>{% if rule.values is defined %}Proposed parameter table{% else %}Proposed rule{% endif %}</h2>
       <pre>{{ rule.model_dump_json(indent=2, by_alias=True) }}</pre>
     </div>
 
