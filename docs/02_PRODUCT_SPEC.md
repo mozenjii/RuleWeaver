@@ -10,7 +10,7 @@ impact plus parity against independently supplied known-answer cases.
 
 This is the revised plan in ADR-032 (`docs/11_DECISIONS.md`). Simulated reviews
 inform requirements; they are hypotheses, not customer research or purchase evidence.
-`research/REQUIREMENTS.md` is the single source of truth for requirement status and
+`docs/10_BACKLOG.md` is the single source of truth for requirement status and
 priority. The evidence below describes the current implementation and its limits.
 
 ## Users and deployment
@@ -129,7 +129,7 @@ this product's intended scope.
 A first usable version must close the P0 claim gaps and demonstrate current supported
 content, explicit approval on deployed paths, and independent known-answer verification.
 P1 work covers the report, pack, source coverage and operational hardening. Requirement
-priority and status stay in `research/REQUIREMENTS.md` rather than competing checklists.
+priority and status stay in `docs/10_BACKLOG.md` rather than competing checklists.
 
 Measure mismatch counts on independent cases, source/test impact coverage, unknown
 rates with reasons, and reproducibility of a dated pack. An independently annotated

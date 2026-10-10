@@ -1,8 +1,10 @@
 # 13 — Repository Structure
 
-This maps the actual tracked tree on 2026-10-10, not a proposed skeleton. Directory
+This maps the actual tracked tree on 2026-10-11, not a proposed skeleton. Directory
 listings below are selective; the named paths exist. Local tooling, runtime databases,
-virtual environments and caches are not project deliverables.
+virtual environments and caches are not project deliverables. Local working notes
+and raw research are excluded from the tracked tree; project requirements live in
+`docs/10_BACKLOG.md`.
 
 ```text
 RuleWeaver/
@@ -19,17 +21,6 @@ RuleWeaver/
 │   ├── tests.yml
 │   └── release.yml
 ├── docs/                         numbered specifications, decisions and evidence
-├── research/
-│   ├── README.md                 simulated-review caveats
-│   ├── REQUIREMENTS.md           single requirement-status tracker
-│   └── simulated-reviews/
-│       ├── 00-verified-facts.md   historical findings, some since repaired
-│       ├── round-1/
-│       ├── round-2/
-│       └── round-3/
-├── memory/
-│   ├── WORKING_MEMORY.md         shared temporary handoff
-│   └── LOCAL_SESSION_PROMPT.md   historical task instructions
 ├── schemas/
 │   └── ruleweaver-0.1.schema.json
 ├── examples/snap/

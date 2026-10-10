@@ -25,7 +25,7 @@ pack (R-38) are **Planned**. Simulated reviews are hypotheses, not customer evid
 | OpenFisca export/differential execution | **Built** subset, frozen: `src/ruleweaver/adapters/openfisca/`, `tests/test_openfisca_equivalence.py`; consistency evidence, not independent policy truth |
 | Optional model authoring | **Built** segmentation/proposals, frozen: `src/ruleweaver/compile/`, `tests/test_compile.py`; packaging/metadata **Partial**, R-26; additional extraction/linking R-40 |
 
-Requirement status lives in [research/REQUIREMENTS.md](research/REQUIREMENTS.md).
+Requirement status lives in [project backlog](docs/10_BACKLOG.md).
 The architecture maps evidence and gaps in [docs/03_ARCHITECTURE.md](docs/03_ARCHITECTURE.md).
 
 ## Reference content and limits
@@ -145,9 +145,9 @@ this is not legal advice. The native runtime does not require OpenFisca.
 - Product: [brief](docs/00_PROJECT_BRIEF.md), [spec](docs/02_PRODUCT_SPEC.md), [architecture](docs/03_ARCHITECTURE.md)
 - Contract: [IR](docs/04_RULE_IR_SPEC.md), [pipeline](docs/05_COMPILER_PIPELINE.md), [safety](docs/06_VERIFICATION_SAFETY.md)
 - Evidence: [status](docs/01_PROJECT_STATUS.md), [benchmark plan](docs/07_DATA_BENCHMARK_EVAL.md), [adapters](docs/08_ADAPTERS_INTEROP.md)
-- Work: [roadmap](docs/09_IMPLEMENTATION_ROADMAP.md), [backlog routing](docs/10_BACKLOG.md), [decisions](docs/11_DECISIONS.md)
+- Work: [roadmap](docs/09_IMPLEMENTATION_ROADMAP.md), [backlog and requirements](docs/10_BACKLOG.md), [decisions](docs/11_DECISIONS.md)
 - Reference: [research map](docs/12_RESEARCH_REFERENCES.md), [actual tree](docs/13_REPO_STRUCTURE.md), [glossary](docs/14_GLOSSARY.md), [SNAP vocabulary](docs/15_VOCABULARY.md)
-- Handoff: [shared memory](memory/WORKING_MEMORY.md), [research caveats](research/README.md), [requirements](research/REQUIREMENTS.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md)
+- Project records: [backlog](docs/10_BACKLOG.md), [changelog](CHANGELOG.md), [security policy](SECURITY.md)
 
 The active roadmap excludes Catala/LegalRuleML/PROV export, Akoma Ntoso, OCR, plugin SDK,
 pre-user hosted multi-tenant SaaS and pre-hosted certifications. Historical references do

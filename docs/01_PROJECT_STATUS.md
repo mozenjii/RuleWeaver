@@ -2,7 +2,7 @@
 
 **Evidence date:** 2026-10-11. **Plan:** ADR-032, self-hosted compiler/verifier;
 change impact plus independent known-answer verification. Requirement status and priority
-live in `research/REQUIREMENTS.md`. This is an evidence snapshot, not a second backlog.
+live in `docs/10_BACKLOG.md`. This is an evidence snapshot, not a second backlog.
 
 ## Built supported components
 

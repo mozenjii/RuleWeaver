@@ -1,6 +1,6 @@
 # 05 — Compiler Pipeline
 
-The product is a self-hosted compiler and verifier. Its intended deliverable is source-linked change impact plus independent verification against the user's own cases. Optional model authoring proposes interpretations; deterministic validation and human approval remain separate. See ADR-032 in `docs/11_DECISIONS.md` and `research/REQUIREMENTS.md` for priorities and status.
+The product is a self-hosted compiler and verifier. Its intended deliverable is source-linked change impact plus independent verification against the user's own cases. Optional model authoring proposes interpretations; deterministic validation and human approval remain separate. See ADR-032 in `docs/11_DECISIONS.md` and `docs/10_BACKLOG.md` for priorities and status.
 
 ## Passes and implementation evidence
 

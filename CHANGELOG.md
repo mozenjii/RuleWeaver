@@ -8,6 +8,9 @@ that matches it (see `.github/workflows/release.yml`).
 
 ### Product plan and documentation
 
+- Keep private workspace notes outside the published tree and maintain the project
+  requirements in the existing numbered backlog.
+
 - Define the self-hosted compiler and verifier scope in ADR-032, with separately
   versioned content packs, change-impact reports and independent known-answer parity.
 - Revise ADR-021/022 and the intended-purpose statement (R-25); record commercial

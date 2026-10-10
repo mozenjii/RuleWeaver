@@ -171,7 +171,7 @@ class TestWhatIsNotCovered:
         """FNS sets the limits for a ninth member by adding a rounded increment ($459
         net, $596 gross), which is a dollar above recomputing from the poverty line. The
         tables stop at eight rather than extrapolate an answer that could be a dollar
-        wrong at the edge; research/REQUIREMENTS.md R-36 tracks it."""
+        wrong at the edge; docs/10_BACKLOG.md R-36 tracks it."""
         ctx = evaluator.run(household([member(30, unearned="1000")], size=9))
         assert ctx.household.get("var.household.is_income_eligible", UNKNOWN) is UNKNOWN
 

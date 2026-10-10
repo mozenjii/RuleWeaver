@@ -672,7 +672,7 @@ sales-deadline roadmap. Historical design references remain; no code is removed.
 
 ### Context
 
-The three simulated review rounds in `research/simulated-reviews/` raised useful
+The three private simulated review rounds raised useful
 objections, but consulted no real customer, reviewer or counsel. Their preferences,
 prices and deadlines are hypotheses, not evidence of demand. Several earlier product
 claims outran the code. The owner chooses a good first version before commercial urgency.
@@ -718,7 +718,7 @@ candidate, **Planned** (R-46), subject to the owner's decision, not started work
 
 ### Consequences and acceptance evidence
 
-Requirement status lives only in `research/REQUIREMENTS.md`. Architecture and product
+Requirement status lives only in `docs/10_BACKLOG.md`. Architecture and product
 pages label components Built / Partial / Planned with paths/tests or requirement IDs.
 Complete P0 content and gate hardening before polishing the report/parity/pack deliverable.
 A software wheel, container or hash field is not a content-pack release. A review log

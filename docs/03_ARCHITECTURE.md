@@ -3,7 +3,7 @@
 RuleWeaver is a self-hosted compiler and verifier for computable benefit and tax
 rules. The intended deliverable is change impact plus independent verification,
 not a hosted calculation business. ADR-032 records the owner's revised plan.
-`research/REQUIREMENTS.md` owns requirement status; labels here describe the bounded
+`docs/10_BACKLOG.md` owns requirement status; labels here describe the bounded
 implementation on 2026-10-10. Built does not mean independently correct policy.
 
 ## Component map

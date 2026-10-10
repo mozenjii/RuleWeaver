@@ -15,7 +15,7 @@ The complete dated, source-linked change report is not built (R-16).
 **Planned:** the independent known-answer parity command is not built (R-17).
 
 The owner has chosen to make the first version work well before pursuing sales.
-The simulated reviews under `research/simulated-reviews/` supply hypotheses and
+The private simulated review exercises supply hypotheses and
 risk questions; their participants, prices and preferences are not market evidence.
 ADR-032 in `docs/11_DECISIONS.md` records the revised plan.
 
@@ -89,7 +89,7 @@ from the same evaluator demonstrate consistency; only independent policy-intent 
 can supply independent verification. An independently annotated public benchmark is
 not built (R-42).
 
-The remaining claims and their priorities live in `research/REQUIREMENTS.md`.
+The remaining claims and their priorities live in `docs/10_BACKLOG.md`.
 The first work is current SNAP content and approval/audit hardening, followed by the
 change report, parity and content-pack boundary. No deadline substitutes for evidence.
 The owner still needs to decide the next corpus (R-46) and arrange the qualified

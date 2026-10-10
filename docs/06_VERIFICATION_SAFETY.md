@@ -1,6 +1,6 @@
 # 06 — Verification, Safety, and Trust Model
 
-RuleWeaver produces reviewable interpretations of benefit/tax rules. Official sources retain authority. The intended self-hosted workflow requires a person to approve both rules and parameter tables before deployed execution. It provides change impact plus independent verification, not an authoritative legal determination. See ADR-032 and `research/REQUIREMENTS.md`; intended-purpose statements are not legal advice and need counsel review before commercial use (R-25).
+RuleWeaver produces reviewable interpretations of benefit/tax rules. Official sources retain authority. The intended self-hosted workflow requires a person to approve both rules and parameter tables before deployed execution. It provides change impact plus independent verification, not an authoritative legal determination. See ADR-032 and `docs/10_BACKLOG.md`; intended-purpose statements are not legal advice and need counsel review before commercial use (R-25).
 
 ## Threats and current controls
 

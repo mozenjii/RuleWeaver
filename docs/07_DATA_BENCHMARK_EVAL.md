@@ -13,7 +13,7 @@ Exception/combinatorial/property coverage and affected-test discovery remain pla
 benchmark with held-out splits and reproducible metrics (R-42), and the England
 Universal Credit corpus (R-46, owner decision). No public benchmark, measured extraction
 accuracy or expert policy certification is claimed. Simulated market reviews in
-`research/` are hypotheses, not interviews or benchmark results.
+private working notes are hypotheses, not interviews or benchmark results.
 
 The task families and release stages below are research designs, all **Planned
 (R-42)**. Their existence does not authorize expansion beyond ADR-032. First deliver

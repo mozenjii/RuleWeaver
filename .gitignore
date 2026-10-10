@@ -59,3 +59,7 @@ build/
 out/
 coverage/
 *.log
+
+# Private working notes and raw research stay local.
+/research/
+/memory/

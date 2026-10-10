@@ -4,7 +4,7 @@ ADR-032 replaces the old expansion roadmap. Build a good self-hosted compiler/ve
 before sales deadlines. The intended deliverable is change impact plus independent
 known-answer verification. Simulated reviews are hypotheses, not customer commitments.
 
-`research/REQUIREMENTS.md` is the only requirement-status tracker. Read it before selecting
+`docs/10_BACKLOG.md` is the only requirement-status tracker. Read it before selecting
 work; this document orders dependencies and states acceptance evidence, not completion.
 
 ## P0 — Restore and harden claims
