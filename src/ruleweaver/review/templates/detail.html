@@ -76,6 +76,12 @@
     <textarea name="note" id="note" rows="3"
       placeholder="Required when rejecting or marking ambiguous. Say what the source actually requires, not just that the rule is wrong."></textarea>
 
+    <label for="edited_to">Corrected rule — only for "edit"</label>
+    <textarea name="edited_to" id="edited_to" rows="10" spellcheck="false"
+      aria-describedby="edited_to_help">{{ rule.model_dump_json(indent=2, by_alias=True) }}</textarea>
+    <p class="muted" id="edited_to_help">An edit approves this corrected version, not the
+      rule above. The rule stays blocked until the package is updated to match it.</p>
+
     <button type="submit">Record decision</button>
   </form>
 </div>

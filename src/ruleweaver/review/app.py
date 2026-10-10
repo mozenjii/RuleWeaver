@@ -65,6 +65,27 @@ def _source_hash(package: RulePackage, rule_id: str) -> str:
     return source_digest(_rule(package, rule_id))
 
 
+def _correction(raw: str, rule_id: str) -> dict:
+    """The corrected rule from the review form, or a 400 saying what is wrong with it.
+
+    It must be a valid rule and keep the rule's id: an edit corrects one rule, it does
+    not swap in a different one.
+    """
+    import json
+
+    from ..ir.rules import Rule
+
+    if not raw.strip():
+        raise HTTPException(400, "an edit must include the corrected rule")
+    try:
+        rule = Rule.model_validate(json.loads(raw))
+    except Exception as exc:
+        raise HTTPException(400, f"the corrected rule is not a valid rule: {exc}") from exc
+    if rule.id != rule_id:
+        raise HTTPException(400, f"an edit of {rule_id} cannot change the rule id")
+    return rule.model_dump(mode="json", by_alias=True)
+
+
 def create_app(
     package: RulePackage,
     store: ReviewStore,
@@ -117,8 +138,9 @@ def create_app(
             for rule in package.rules
         ]
         # Unreviewed first — a queue sorted by id buries the work.
-        order = {Status.UNREVIEWED: 0, Status.STALE: 1, Status.AMBIGUOUS: 2,
-                 Status.HUMAN_JUDGMENT_REQUIRED: 3, Status.REJECTED: 4, Status.APPROVED: 5}
+        order = {Status.UNREVIEWED: 0, Status.STALE: 1, Status.EDIT_PENDING: 2,
+                 Status.AMBIGUOUS: 3, Status.HUMAN_JUDGMENT_REQUIRED: 4,
+                 Status.REJECTED: 5, Status.APPROVED: 6}
         rows.sort(key=lambda r: order.get(r["status"], 9))
         return templates.TemplateResponse(
             request, "queue.html",
@@ -152,12 +174,17 @@ def create_app(
         decision: str = Form(...),
         note: str = Form(""),
         duration_seconds: float = Form(0.0),
+        edited_to: str = Form(""),
     ):
         reviewer = resolve_reviewer(request)
         try:
             chosen = Decision(decision)
         except ValueError as exc:
             raise HTTPException(400, f"unknown decision: {decision}") from exc
+
+        correction = None
+        if chosen is Decision.EDIT:
+            correction = _correction(edited_to, rule_id)
 
         seeded = next((s for s in store.seeds() if s["rule_id"] == rule_id), None)
 
@@ -171,6 +198,7 @@ def create_app(
                 duration_seconds=duration_seconds or None,
                 note=note or None,
                 seeded_error_id=seeded["id"] if seeded else None,
+                edited_to=correction,
             )
         except ValueError as exc:
             # A rejection without a reason. Send them back rather than storing a

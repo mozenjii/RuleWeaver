@@ -40,6 +40,25 @@ class Status(StrEnum):
     AMBIGUOUS = "ambiguous"
     HUMAN_JUDGMENT_REQUIRED = "human_judgment_required"
     STALE = "stale"
+    # A reviewer supplied a correction that is not in the package yet. The rule as
+    # written is the thing the reviewer said was wrong, so it does not run.
+    EDIT_PENDING = "edit_pending"
+
+
+def edited_rule_hash(edited_to: dict | None) -> str | None:
+    """The hash the package's rule must have for an edit to count as applied.
+
+    Computed with the gate's own `rule_digest`, so "the package now holds the corrected
+    rule" is decided by the same function that decides every other approval. None when
+    the edit is not a valid rule, which no package rule can match.
+    """
+    from ..approval import rule_digest
+    from ..ir.rules import Rule
+
+    try:
+        return rule_digest(Rule.model_validate(edited_to))
+    except Exception:
+        return None
 
 
 def _now() -> str:
@@ -109,7 +128,16 @@ class ReviewLog:
         if latest is None:
             return Status.UNREVIEWED
 
-        if latest.decision in (Decision.APPROVE, Decision.EDIT):
+        if latest.decision == Decision.EDIT:
+            # An edit approves the corrected rule, not the one the reviewer corrected.
+            # It used to be treated as an approval of the original, so the wording a
+            # reviewer had just rejected would have run the moment the edit was saved.
+            if latest.source_hash != source_hash:
+                return Status.STALE
+            if rule_hash == edited_rule_hash(latest.edited_to):
+                return Status.APPROVED
+            return Status.EDIT_PENDING
+        if latest.decision == Decision.APPROVE:
             if latest.rule_hash != rule_hash or latest.source_hash != source_hash:
                 return Status.STALE
             return Status.APPROVED

@@ -120,6 +120,34 @@ class TestDecisions:
     def test_unknown_decision_is_refused(self, client):
         assert client.post(f"/rule/{RULE}/decide", data={"decision": "looks_fine"}).status_code == 400
 
+    def test_an_edit_from_the_form_is_recorded_and_blocks_the_original(self, client,
+                                                                     package):
+        """The form offered "edit" but never sent the correction, so every edit failed."""
+        fixed = package.rule(RULE).model_copy(update={"effective_from": "2026-02-01"})
+        r = client.post(f"/rule/{RULE}/decide", follow_redirects=False, data={
+            "decision": "edit", "note": "starts a month later",
+            "edited_to": fixed.model_dump_json(by_alias=True)})
+        assert r.status_code == 303
+        assert "edit_pending" in client.get(f"/rule/{RULE}").text
+
+    @pytest.mark.parametrize(("edited_to", "message"), [
+        ("", "must include the corrected rule"),
+        ("{not json", "not a valid rule"),
+        ('{"id": "x"}', "not a valid rule"),
+    ])
+    def test_a_bad_correction_is_refused(self, client, edited_to, message):
+        r = client.post(f"/rule/{RULE}/decide",
+                        data={"decision": "edit", "edited_to": edited_to})
+        assert r.status_code == 400
+        assert message in r.text
+
+    def test_an_edit_cannot_change_the_rule_id(self, client, package):
+        other = package.rule(RULE).model_copy(update={"id": "rule.snap.other"})
+        r = client.post(f"/rule/{RULE}/decide", data={
+            "decision": "edit", "edited_to": other.model_dump_json(by_alias=True)})
+        assert r.status_code == 400
+        assert "cannot change the rule id" in r.text
+
     def test_history_appears_after_deciding(self, client):
         client.post(f"/rule/{RULE}/decide",
                     data={"decision": "approve", "duration_seconds": "30"})

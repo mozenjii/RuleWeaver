@@ -225,3 +225,48 @@ class TestDualEncoding:
         log = ReviewLog()
         log.append(event(reviewer="alice"))
         assert dual_encode_disagreements(log, [RULE]) == []
+
+
+class TestEditApprovesTheCorrection:
+    """An edit says "this rule is wrong; run this instead". Treating it as an approval of
+    the original — which the log once did — would run the wording a reviewer rejected."""
+
+    def corrected(self, package):
+        from ruleweaver.approval import rule_digest, source_digest
+
+        original = package.rule(RULE)
+        fixed = original.model_copy(update={"effective_from": "2026-02-01"})
+        return original, fixed, rule_digest(original), rule_digest(fixed), \
+            source_digest(original)
+
+    def test_the_original_does_not_run_after_an_edit(self, package):
+        _, fixed, original_hash, _, source_hash = self.corrected(package)
+        log = ReviewLog()
+        log.append(event(decision=Decision.EDIT, rule_hash=original_hash,
+                         source_hash=source_hash,
+                         edited_to=fixed.model_dump(mode="json", by_alias=True)))
+        assert log.status(RULE, rule_hash=original_hash, source_hash=source_hash) \
+            is Status.EDIT_PENDING
+
+    def test_the_correction_runs_once_the_package_holds_it(self, package):
+        _, fixed, original_hash, fixed_hash, source_hash = self.corrected(package)
+        log = ReviewLog()
+        log.append(event(decision=Decision.EDIT, rule_hash=original_hash,
+                         source_hash=source_hash,
+                         edited_to=fixed.model_dump(mode="json", by_alias=True)))
+        assert log.status(RULE, rule_hash=fixed_hash, source_hash=source_hash) \
+            is Status.APPROVED
+
+    def test_a_moved_source_makes_the_edit_stale(self, package):
+        _, fixed, original_hash, fixed_hash, _ = self.corrected(package)
+        log = ReviewLog()
+        log.append(event(decision=Decision.EDIT, rule_hash=original_hash,
+                         source_hash="old-source",
+                         edited_to=fixed.model_dump(mode="json", by_alias=True)))
+        assert log.status(RULE, rule_hash=fixed_hash, source_hash="new-source") \
+            is Status.STALE
+
+    def test_an_invalid_correction_never_approves_anything(self):
+        log = ReviewLog()
+        log.append(event(decision=Decision.EDIT, edited_to={"not": "a rule"}))
+        assert log.status(RULE, rule_hash="r1", source_hash="s1") is Status.EDIT_PENDING
