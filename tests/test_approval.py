@@ -135,6 +135,36 @@ class TestApprovedSubset:
         assert eligible is UNKNOWN, "an unapproved rule must not produce a denial"
 
 
+class TestOverridesUnderTheGate:
+    """A "notwithstanding" clause binds whether or not its encoding has been approved."""
+
+    def test_an_unapproved_override_withholds_the_rule_it_overrides(self, package):
+        minimum = "rule.snap.standard_deduction_minimum"
+        computed = "rule.snap.standard_deduction_computed"
+        log = ReviewLog()
+        for rule_id, (rh, sh) in current_hashes(package).items():
+            if rule_id != minimum:
+                log.append(ReviewEvent(rule_id=rule_id, reviewer="alice",
+                                       decision=Decision.APPROVE,
+                                       rule_hash=rh, source_hash=sh))
+        subset, report = approved_subset(package, log)
+
+        assert computed not in {r.id for r in subset.rules}
+        assert report.withheld == {computed: f"overridden by {minimum}, which is not approved"}
+        assert "withheld" in str(report)
+
+        evaluator = Evaluator(subset, ParameterTable(subset, overrides=PARAMETER_OVERRIDES))
+        ctx = evaluator.run(household([member(34, "1500"), member(8), member(6)],
+                                      shelter="900"))
+        deduction = ctx.household.get("var.household.standard_deduction", UNKNOWN)
+        # It used to be 180 — below the 204 minimum the regulation guarantees.
+        assert deduction is UNKNOWN
+
+    def test_a_fully_approved_package_withholds_nothing(self, package):
+        _, report = approved_subset(package, approve_all(package))
+        assert report.withheld == {}
+
+
 class TestGateReport:
     def test_summarises_by_status(self, package):
         report = check(package, ReviewLog())

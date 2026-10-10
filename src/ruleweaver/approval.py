@@ -70,6 +70,8 @@ class GateReport:
 
     approved: list[str] = field(default_factory=list)
     blocked: dict[str, Status] = field(default_factory=dict)
+    # Approved, but not run by `approved_subset`: the reason, by rule id.
+    withheld: dict[str, str] = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
@@ -84,6 +86,8 @@ class GateReport:
             counts[status.value] = counts.get(status.value, 0) + 1
         for name in sorted(counts):
             parts.append(f"  {name:28} {counts[name]}")
+        for rule_id, reason in sorted(self.withheld.items()):
+            parts.append(f"  withheld {rule_id}: {reason}")
         return "\n".join(parts)
 
 
@@ -103,12 +107,33 @@ def check(package: RulePackage, log: ReviewLog) -> GateReport:
 def approved_subset(package: RulePackage, log: ReviewLog) -> tuple[RulePackage, GateReport]:
     """The package with unapproved rules removed, plus what was removed and why.
 
-    Entities, variables and parameters are kept whole. Dropping a variable because the only
+    An approved rule that an excluded rule overrides is excluded as well, and listed in
+    the report's `withheld`. Entities, variables and parameters are kept whole. Dropping a variable because the only
     rule assigning it was excluded would turn a reference to it into a validation error,
     which reports the wrong problem: the reference is fine, the approval is missing.
     """
     report = check(package, log)
     keep = set(report.approved)
+
+    # A "notwithstanding" clause binds whether or not anyone has approved its encoding.
+    # Dropping the unapproved overriding rule used to let the rule it overrides run in
+    # its place: with the standard-deduction minimum unapproved, the baseline household
+    # got a deduction of 180, below the 204 the regulation guarantees, where the honest
+    # answer is unknown. So a rule overridden by an excluded rule is excluded too, and
+    # that repeats down a chain of overrides.
+    changed = True
+    while changed:
+        changed = False
+        for rule in package.rules:
+            if rule.id in keep:
+                continue
+            for overridden in rule.overrides:
+                if overridden in keep:
+                    keep.discard(overridden)
+                    report.withheld[overridden] = (
+                        f"overridden by {rule.id}, which is not approved")
+                    changed = True
+
     subset = package.model_copy(update={"rules": [r for r in package.rules if r.id in keep]})
     return subset, report
 
