@@ -115,7 +115,12 @@ class ReviewLog:
         return [e for e in self._events if e.rule_id == rule_id]
 
     def latest_for(self, rule_id: str) -> ReviewEvent | None:
-        events = self.events_for(rule_id)
+        """The latest decision on the rule itself.
+
+        Decisions on a planted fault are excluded: the reviewer was shown a mutant, so
+        approving it must not approve the rule, and rejecting it must not reject it.
+        """
+        events = [e for e in self.events_for(rule_id) if e.seeded_error_id is None]
         return events[-1] if events else None
 
     def status(self, rule_id: str, *, rule_hash: str, source_hash: str) -> Status:

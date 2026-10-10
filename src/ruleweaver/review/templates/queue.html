@@ -7,6 +7,15 @@
   <strong>{{ pending }}</strong> awaiting review
 </p>
 
+{% if seed_rate > 0 %}
+<p class="notice" role="note">
+  <strong>Review-quality checks are on.</strong> About {{ (seed_rate * 100)|round|int }}% of the
+  rules in this queue are first shown as a deliberately faulty version — the kind of mistake
+  an extraction makes. Reject or correct anything wrong; the real rule comes back for its own
+  review afterwards. Results are reported only in aggregate, never per reviewer.
+</p>
+{% endif %}
+
 <table>
   <thead>
     <tr>

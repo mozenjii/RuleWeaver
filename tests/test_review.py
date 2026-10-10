@@ -150,7 +150,10 @@ class TestCatchRate:
         """An unreviewed backlog must not look like a failing gate."""
         _, queue, err = self._queue()
         assert queue.unresolved() == [err]
-        assert queue.metrics().catch_rate == 0.0  # nothing caught yet
+        # Unmeasured, not 0%: this assertion used to expect 0.0, encoding the very
+        # miscount the test's name rules out.
+        assert queue.metrics().catch_rate is None
+        assert queue.metrics().seeded_pending == 1
         assert len(queue.unresolved()) == 1
 
     def test_no_seeds_gives_none_not_zero(self):

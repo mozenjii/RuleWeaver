@@ -28,11 +28,12 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 
 from ..approval import rule_digest, source_digest
-from ..ir.rules import RulePackage
+from ..ir.rules import Rule, RulePackage
 from ..verify import validate
 from .adversarial import AdversarialQueue
 from .decisions import Decision, ReviewEvent, Status
 from .identity import resolver_from_env
+from .seeding import pending_seed, plant_seeds
 from .store import ReviewStore
 
 TEMPLATES = Path(__file__).parent / "templates"
@@ -91,26 +92,46 @@ def create_app(
     store: ReviewStore,
     *,
     reviewer_resolver: Callable[[Request], str] | None = None,
-    seed_rate: float = 0.1,
+    seed_rate: float = 0.0,
     salt: str = "",
 ) -> FastAPI:
+    """The reviewer application.
+
+    `seed_rate` is the share of rules shown first as a planted fault. It is off by
+    default for a library caller; `ruleweaver review` turns it on at 10%.
+    """
     app = FastAPI(title="RuleWeaver review", docs_url=None, redoc_url=None)
     templates = Jinja2Templates(directory=str(TEMPLATES))
     # Fails closed when nothing is configured. Recording approvals against an
     # identity the client chose is worse than refusing to start: it produces a
     # log that looks like evidence.
     resolve_reviewer = reviewer_resolver or resolver_from_env()
+
+    def status_of_with(log, rule_id: str) -> Status:
+        return log.status(
+            rule_id,
+            rule_hash=_rule_hash(package, rule_id),
+            source_hash=_source_hash(package, rule_id),
+        )
+
     report = validate(package)
+    if seed_rate > 0:
+        plant_seeds(package, store, seed_rate=seed_rate, salt=salt,
+                    statuses={r.id: status_of_with(store.load_log(), r.id)
+                              for r in package.rules})
 
     def current_queue() -> AdversarialQueue:
         return AdversarialQueue(store.load_log(), seed_rate=seed_rate, salt=salt)
 
     def status_of(rule_id: str) -> Status:
-        return store.load_log().status(
-            rule_id,
-            rule_hash=_rule_hash(package, rule_id),
-            source_hash=_source_hash(package, rule_id),
-        )
+        return status_of_with(store.load_log(), rule_id)
+
+    def shown(rule_id: str, log) -> tuple[Rule | None, dict | None]:
+        """The rule a reviewer sees: a pending planted fault, or the rule itself."""
+        seed = pending_seed(store, log, rule_id) if seed_rate > 0 else None
+        if seed is not None:
+            return Rule.model_validate(seed["mutated_rule"]), seed
+        return package.rule(rule_id), None
 
     @app.get("/healthz")
     def healthz():
@@ -144,16 +165,16 @@ def create_app(
         rows.sort(key=lambda r: order.get(r["status"], 9))
         return templates.TemplateResponse(
             request, "queue.html",
-            {"rows": rows, "package": package,
+            {"rows": rows, "package": package, "seed_rate": seed_rate,
              "pending": sum(1 for r in rows if r["status"] is Status.UNREVIEWED)},
         )
 
     @app.get("/rule/{rule_id}", response_class=HTMLResponse)
     def detail(request: Request, rule_id: str):
-        rule = package.rule(rule_id)
-        if rule is None:
+        if package.rule(rule_id) is None:
             raise HTTPException(404, f"unknown rule: {rule_id}")
         log = store.load_log()
+        rule, _ = shown(rule_id, log)
         return templates.TemplateResponse(
             request, "detail.html",
             {
@@ -186,14 +207,16 @@ def create_app(
         if chosen is Decision.EDIT:
             correction = _correction(edited_to, rule_id)
 
-        seeded = next((s for s in store.seeds() if s["rule_id"] == rule_id), None)
+        displayed, seeded = shown(rule_id, store.load_log())
 
         try:
             event = ReviewEvent(
                 rule_id=rule_id,
                 reviewer=reviewer,
                 decision=chosen,
-                rule_hash=_rule_hash(package, rule_id),
+                # What the reviewer actually saw — the mutant, when one was shown.
+                rule_hash=rule_digest(displayed) if displayed is not None
+                else _rule_hash(package, rule_id),
                 source_hash=_source_hash(package, rule_id),
                 duration_seconds=duration_seconds or None,
                 note=note or None,

@@ -38,7 +38,7 @@
       <p style="font-size:2rem; margin:.2rem 0">
         <strong>{{ '%.0f%%'|format(metrics.catch_rate * 100) }}</strong>
       </p>
-      <p class="muted">{{ metrics.seeded_caught }} of {{ metrics.seeded_total }} planted faults caught</p>
+      <p class="muted">{{ metrics.seeded_caught }} of {{ metrics.seeded_total }} planted faults caught{% if metrics.seeded_pending %} · {{ metrics.seeded_pending }} still in the queue{% endif %}</p>
     {% else %}
       <p class="muted">
         Nothing seeded yet, so the catch rate is unmeasured — which is different from

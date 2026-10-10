@@ -9,9 +9,9 @@ experienced reviewers**, and to 19.8% among inexperienced ones. Expertise attenu
 automation bias; it does not prevent it.
 
 So the queue seeds deliberate errors at a known rate and measures how many are caught.
-That number is the evidence ADR-004's approval gate is doing anything — and it doubles as
-EU AI Act Art. 14 automation-bias mitigation, since benefits eligibility is high-risk
-under Annex III 5(a).
+That number is the evidence ADR-004's approval gate is doing anything. It is a measure
+of the review process, not a legal compliance claim: whether any AI-Act obligation applies
+to a deployment is for that deployment's counsel.
 
 Nothing here decides anything. It measures whether the humans are.
 """
@@ -30,8 +30,8 @@ from .decisions import Decision, ReviewLog
 class SeededError:
     """A deliberate fault inserted into the review queue.
 
-    `expected_decision` is what a reviewer who spotted it should choose. Anything else —
-    including an approve — counts as missed.
+    `expected_decision` is what a reviewer who spotted it should choose. Rejecting it or
+    correcting it with an edit both count as caught; approving it counts as missed.
     """
 
     id: str
@@ -70,6 +70,9 @@ class ReviewMetrics:
     approvals: int
     rejections: int
     durations: list[float]
+    # Planted faults nobody has ruled on yet. Kept out of the catch rate: a backlog is not
+    # a miss.
+    seeded_pending: int = 0
 
     @property
     def catch_rate(self) -> float | None:
@@ -157,15 +160,21 @@ class AdversarialQueue:
         for event in self.log.events_for(error.rule_id):
             if event.seeded_error_id != error_id:
                 continue
-            return event.decision == error.expected_decision
+            return event.decision in (error.expected_decision, Decision.EDIT)
         return False
 
     def metrics(self) -> ReviewMetrics:
         events = self.log.events
+        # Only faults someone has ruled on count. Counting the whole queue made every
+        # unreviewed fault a miss, so a fresh campaign reported a near-zero catch rate —
+        # the opposite of what `unresolved` below promised.
+        pending = {err.id for err in self.unresolved()}
+        resolved = [eid for eid in self._seeded if eid not in pending]
         return ReviewMetrics(
             total_reviewed=len(events),
-            seeded_total=len(self._seeded),
-            seeded_caught=sum(1 for eid in self._seeded if self.was_caught(eid)),
+            seeded_total=len(resolved),
+            seeded_caught=sum(1 for eid in resolved if self.was_caught(eid)),
+            seeded_pending=len(pending),
             approvals=sum(1 for e in events if e.decision == Decision.APPROVE),
             rejections=sum(1 for e in events if e.decision == Decision.REJECT),
             durations=[e.duration_seconds for e in events if e.duration_seconds is not None],

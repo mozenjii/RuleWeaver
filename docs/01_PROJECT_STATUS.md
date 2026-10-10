@@ -219,7 +219,7 @@ Keep these up to date once implementation starts:
 | Prompt assets | 2, versioned on disk and hashed into every run record |
 | Approval enforced at execution | Yes — `ruleweaver evaluate --require-approval` |
 | Reviewer identity | Signed tokens or trusted proxy; fails closed with neither |
-| Review gate | Hash-chained append-only log, derived status. Seeded-error catch rate is built but **not wired into the app** — always unmeasured |
+| Review gate | Hash-chained append-only log, derived status, planted faults at a disclosed rate, aggregate catch rate |
 | Review application | FastAPI + Jinja, one container; SQLite or PostgreSQL |
 | Approved adapter targets | **1 built (OpenFisca, code generator), executed and compared** |
 | External contributors | 0 |

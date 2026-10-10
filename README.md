@@ -73,9 +73,8 @@ OpenFisca / Catala / LegalRuleML / other adapters
 - [x] LLM compilation — clause segmentation and rule extraction, behind six checks the
       model cannot talk its way past.
 - [x] Provider-neutral model interface (Claude + GPT) with prompt-injection guard.
-- [~] Adversarial review gate — catch-rate and rubber-stamp metrics are built and
-      tested, **but the reviewer application does not yet plant seeded faults**, so
-      in real use the catch rate is always *unmeasured*.
+- [x] Adversarial review gate — the reviewer application plants deliberate faults at a
+      disclosed rate, measures how many reviewers catch, and reports only in aggregate.
 - [x] Reviewer application — clause beside rule, hash-chained audit log, authenticated
       identity.
 - [x] Approval enforced at execution: unapproved rules do not run.
@@ -152,14 +151,16 @@ Approvals expire on their own: they are recorded against the hash of the clause 
 cites, so re-fetching a source that has changed moves every rule resting on it back into
 the queue.
 
-`/metrics` reports the median time spent per rule and the approval rate, and warns when
-those look like rubber-stamping. It is built to report the share of deliberately seeded
-faults reviewers caught, but **the application does not plant seeded faults yet**: the
-seeding logic exists and is tested on its own, and nothing in the app calls it. So the
-catch rate always reads *unmeasured* — correctly, since an unseeded queue measures
-nothing. Wiring it in is deferred until reviewers are told such tests exist and the
-per-person metrics are made aggregate by default, because scoring named reviewers is
-employee monitoring under GDPR and works-council rules.
+`ruleweaver review` plants deliberate faults: about 10% of rules (`--seed-rate`) are
+first shown as a mutant with one realistic mistake — a flipped comparison, a dropped
+exception, a nudged threshold. A decision on a planted fault never counts for the real
+rule, which comes back for its own review afterwards. The queue tells reviewers that such
+checks exist and at what rate, but not which items they are.
+
+`/metrics` reports the share of planted faults caught, the median time spent per rule and
+the approval rate, and warns when those look like rubber-stamping. Faults still waiting in
+the queue are shown separately and kept out of the catch rate, and no metric names a
+reviewer: scoring named people is employee monitoring under GDPR and works-council rules.
 
 **The bundled identity resolver trusts a header and warns that it is unfit for
 deployment.** Wire in a real identity provider before running this anywhere real — an
