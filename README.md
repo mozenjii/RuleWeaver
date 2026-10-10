@@ -144,7 +144,9 @@ ruleweaver review examples/snap/rules.json
 Opens a queue at `http://127.0.0.1:8000`. Each rule is shown beside the statutory text it
 came from, with its diagnostics and any unresolved readings. Decisions are written to a
 hash-chained, append-only log — a row altered outside the application breaks the chain and
-`/metrics` reports where.
+`/metrics` reports where. That catches a casual edit, not an administrator: the chain is
+unkeyed and lives in the same database, so anyone with write access can recompute all of it.
+Against insiders, copy the chain head somewhere they cannot write, and compare.
 
 Approvals expire on their own: they are recorded against the hash of the clause the rule
 cites, so re-fetching a source that has changed moves every rule resting on it back into
@@ -255,6 +257,10 @@ ruleweaver export examples/snap/rules.json build/openfisca
 
 Per ADR-019 this is a **code generator**: OpenFisca rules are Python `Variable` subclasses
 with vectorised formulas, and only parameters are data. Unapproved rules are not exported.
+
+**Licence note.** RuleWeaver is Apache-2.0, but OpenFisca-Core is AGPL-3.0-or-later, and the
+generated package imports it. Anyone who serves a generated package to users over a network
+takes on the AGPL's terms for that deployment. Get advice before building a product on it.
 
 Every export reports `RW8001`, and the generated module repeats it at the top of the file:
 

@@ -327,6 +327,9 @@ def cmd_export(args) -> int:
     root = result.write(args.out)
     print()
     print(f"wrote {len(result.files)} file(s) to {root}")
+    print("note: the generated package imports OpenFisca-Core, which is AGPL-3.0-or-later; "
+          "serving it to users over a network brings the AGPL's terms with it",
+          file=sys.stderr)
     if not result.ok:
         print("this export is incomplete — see the errors above", file=sys.stderr)
     return 0 if result.ok else 1
@@ -392,6 +395,22 @@ def _service_engine(database: str | None):
     return engine
 
 
+def _warn_empty_parameters(package: RulePackage) -> list[str]:
+    """Say at startup which parameters have no values, and return their ids.
+
+    The shipped SNAP example leaves the published tables out, so served as it is, its
+    headline answers are unknown. Better said once at startup than discovered by a
+    customer reading nulls.
+    """
+    empty = sorted(p.id for p in package.parameters if not p.values)
+    if empty:
+        print(f"warning: {package.package_id} has {len(empty)} parameter(s) with no values; "
+              "anything that depends on them evaluates to unknown:", file=sys.stderr)
+        for pid in empty:
+            print(f"  {pid}", file=sys.stderr)
+    return empty
+
+
 def cmd_serve(args) -> int:
     """Serve approved rules as an HTTP calculation API."""
     engine = _service_engine(args.database)
@@ -408,6 +427,9 @@ def cmd_serve(args) -> int:
             print(f"two packages share the id {package.package_id}", file=sys.stderr)
             return 1
         packages[package.package_id] = package
+
+    for package in packages.values():
+        _warn_empty_parameters(package)
 
     print(f"serving {len(packages)} package(s): {', '.join(sorted(packages))}")
     print(f"database: {engine.url.render_as_string(hide_password=True)}")

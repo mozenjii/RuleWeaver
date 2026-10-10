@@ -229,6 +229,27 @@ class TestReviewCommand:
         assert "Traceback" not in err
 
 
+class TestServeWarnings:
+    def test_empty_parameter_tables_are_named_at_startup(self, capsys):
+        """The shipped example omits the published tables; serving it must say so."""
+        from ruleweaver.cli import _warn_empty_parameters
+
+        package = RulePackage.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+        empty = _warn_empty_parameters(package)
+        err = capsys.readouterr().err
+        assert len(empty) == 6
+        assert "param.snap.fpl_annual" in err and "evaluates to unknown" in err
+
+    def test_a_complete_package_warns_about_nothing(self, capsys):
+        from conftest import with_tables
+        from ruleweaver.cli import _warn_empty_parameters
+
+        package = with_tables(RulePackage.model_validate(
+            json.loads(FIXTURE.read_text(encoding="utf-8"))))
+        assert _warn_empty_parameters(package) == []
+        assert capsys.readouterr().err == ""
+
+
 class TestTokenCommand:
     SECRET = "z" * 48
 
