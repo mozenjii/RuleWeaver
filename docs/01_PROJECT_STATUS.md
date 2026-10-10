@@ -147,7 +147,8 @@ Checked items are built and covered by tests. Everything unchecked is genuinely 
       export; the guarded allotment and the overridden standard deduction are refused
       with a stated reason (ADR-031).
 - [x] OpenFisca code generator — refuses unapproved rules; reports the four-state gap.
-- [ ] OpenFisca test exporter.
+- [x] OpenFisca test exporter — households written as OpenFisca YAML tests with
+      evaluator-derived expectations; `openfisca test` runs them in CI.
 - [x] equivalence verified by running the generated package under OpenFisca —
       `adapters/openfisca/equivalence.py`, run in CI against openfisca-core 45. Every
       exported variable agrees across eight SNAP households; a planted float-rounding
@@ -204,9 +205,10 @@ Keep these up to date once implementation starts:
 | Golden policy corpora | 1 (SNAP, 15 rules from 7 CFR 271.2, 273.9 and 273.10) |
 | Provenance verified against source | **16/16 spans resolve to verbatim clause text** |
 | Deterministic rule features implemented | 12 expression nodes, exceptions, overrides, 4-state values, trace |
-| Tests | 427 passing with every extra; 346 pass and 13 skip on the base install |
+| Tests | 436 passing with every extra; 349 pass and 14 skip on the base install |
 | Mutation score | **22/22 caught (100%)** |
-| Lint / type check | ruff clean, mypy clean (49 files) — both enforced in CI |
+| Lint / type check | ruff clean, mypy clean (50 files) — both enforced in CI |
+| Deployable artefacts | Wheel, sdist, Docker image — all built and exercised in CI |
 | CI | **Green** since 2026-10-10. It was red on every push from 2026-08-16 |
 | Validators implemented | 41 distinct `RWxxxx` diagnostics across 6 families |
 | Test generators | boundary + date transition |
@@ -301,12 +303,6 @@ gap can approve as well as deny.
 
 ### Open findings — need a decision
 
-- **`--partial` ignores a "notwithstanding" clause that is not yet approved.**
-  `approved_subset` drops the unapproved overriding rule, so the rule it overrides runs
-  instead. With `rule.snap.standard_deduction_minimum` unapproved, the baseline household
-  gets a standard deduction of 180, below the 204 statutory minimum, where the answer
-  should be unknown. Proposed fix: withhold any approved rule that an unapproved rule
-  overrides. Not made, because it changes what the gate releases.
 - **The allotment is not exported.** OpenFisca cannot represent "no value" for an
   ineligible household. Exporting it as zero would be the `RW8001` gap applied to the
   benefit amount itself; that is a policy call (ADR-031).
@@ -315,10 +311,26 @@ gap can approve as well as deny.
   not trip it for any of the 1,000 poverty-line values that make it a whole dollar, but
   nothing in the adapter prevents it in general.
 
+### Resolved since
+
+- **`--partial` ignored an unapproved "notwithstanding" clause** and gave the baseline
+  household a standard deduction of 180, below the 204 minimum. An approved rule that an
+  unapproved rule overrides is now withheld, and its value is unknown.
+
+### Deployment, 2026-10-10
+
+- Docker image for the reviewer application: installs the built wheel, runs as a
+  non-root user, keeps the audit log on a `/data` volume, health-checks `GET /healthz`,
+  and refuses to start without an identity provider. CI builds and runs it.
+- PostgreSQL driver through the `postgres` extra; the database password is masked in
+  startup output.
+- Tag-driven releases publish the wheel, sdist and image (`.github/workflows/release.yml`).
+- OpenFisca YAML tests generated from the evaluator and run with `openfisca test`.
+
 ### Next milestone
 
-The OpenFisca YAML test exporter: write the equivalence households out as OpenFisca's own
-test format, so the evidence travels with the exported package.
+Source ingestion beyond eCFR — plain text, HTML and PDF. Today RuleWeaver can only read
+US federal regulations in eCFR XML, which limits who can use it more than anything else.
 
 ## Known risks already identified
 

@@ -82,6 +82,8 @@ OpenFisca / Catala / LegalRuleML / other adapters
       agrees across eight SNAP households.
 - [x] CLI.
 - [x] CI green — test matrix with every extra installed, plus a base-install job.
+- [x] Deployable — Docker image for the reviewer application, PostgreSQL support,
+      health check, tag-driven releases.
 
 ### Not built yet
 
@@ -282,6 +284,40 @@ print(compare(package, result, system, evaluator, household))
 
 OpenFisca can only index a table with two or more dimensions when it is a complete grid;
 a sparse one is reported as `RW8007` rather than filled in.
+
+## Deploying the reviewer application
+
+```bash
+docker build -t ruleweaver .
+docker run -p 8000:8000 -v ruleweaver-data:/data \
+  -e RULEWEAVER_SESSION_SECRET="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')" \
+  ruleweaver review /app/examples/snap/rules.json --host 0.0.0.0
+```
+
+The image runs as a non-root user and keeps the audit log on the `/data` volume. For
+PostgreSQL, set `RULEWEAVER_DATABASE_URL=postgresql+psycopg://user:password@host/db`; the
+password is masked in startup output. `GET /healthz` returns 200 while the audit log is
+reachable and 503 when it is not. Without an identity provider the container refuses to
+start.
+
+Releases are cut by pushing a tag that matches `__version__` — `git tag v0.2.0 && git push
+--tags` — which tests, then publishes the wheel and sdist as a GitHub Release and the image
+to `ghcr.io/<owner>/ruleweaver`. See [`CHANGELOG.md`](CHANGELOG.md).
+
+### OpenFisca tests that travel with the export
+
+```python
+from ruleweaver.adapters.openfisca.yaml_tests import test_file
+
+(out / "tests" / "snap.yaml").write_text(test_file(package, result, evaluator, households))
+```
+
+```bash
+openfisca test out/tests/snap.yaml --country-package snapcountry
+```
+
+Expected values come from the deterministic evaluator. A value it reports as unknown is
+left out of the file rather than asserted, because OpenFisca's default is not an answer.
 
 ## Read this documentation in order
 

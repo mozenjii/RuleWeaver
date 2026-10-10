@@ -1,6 +1,6 @@
 # 10 — Backlog
 
-> **Status, 2026-10-10.** 85 of 134 items are done. `docs/01_PROJECT_STATUS.md` is the
+> **Status, 2026-10-10.** 88 of 134 items are done. `docs/01_PROJECT_STATUS.md` is the
 > authority on what is built; this file is the plan. An item is ticked only when there is
 > an implementation *and* a test — a backlog that overstates progress is worse than one
 > nobody updated, because someone will trust it.
@@ -9,8 +9,10 @@
 > valuable, is built: the OpenFisca export is executed beside the evaluator in CI, and its
 > first run found eight defects the structural tests had passed. See the status file.
 >
-> The most valuable P1 left is the **OpenFisca YAML test export**, so the equivalence
-> evidence ships with the generated package. Everything else is breadth.
+> The YAML test export, the Docker image and release tooling followed. The most valuable
+> P1s left are **source ingestion beyond eCFR** (Epic H) and the **public benchmark**
+> (Epic M) — the first decides who can use RuleWeaver, the second whether anyone should
+> trust it.
 
 Legend:
 
@@ -27,7 +29,7 @@ Legend:
 - [x] **P0** Add formatting/linting.
 - [x] **P0** Add CI workflow.
 - [x] **P0** Define diagnostic object and code ranges.
-- [ ] **P1** Add release/version tooling.
+- [x] **P1** Add release/version tooling — single-source version, `--version`, changelog, tag-driven release.
 - [x] **P1** Add JSON Schema generation/check.
 
 ## Epic B — Source model
@@ -149,7 +151,7 @@ Legend:
 - [x] **P1** parameters mapping.
 - [x] **P1** expression-to-formula generator.
 - [x] **P1** formula/date mapping — formulas dated from `effective_from`, `end` from `effective_to`.
-- [ ] **P1** YAML test export.
+- [x] **P1** YAML test export — `adapters/openfisca/yaml_tests.py`, run by `openfisca test` in CI.
 - [x] **P1** package scaffold output.
 - [ ] **P1** target validation.
 - [x] **P1** differential test harness — `adapters/openfisca/equivalence.py`, run in CI.
@@ -181,7 +183,7 @@ Legend:
 ## Epic N — Developer experience
 
 - [x] **P1** CLI.
-- [ ] **P1** Docker image.
+- [x] **P1** Docker image — reviewer application, non-root, health-checked, built and run in CI.
 - [x] **P1** example project.
 - [x] **P1** architecture docs kept current.
 - [ ] **P2** FastAPI service.
