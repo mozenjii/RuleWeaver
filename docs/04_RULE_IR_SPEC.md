@@ -1,6 +1,13 @@
 # 04 — RuleWeaver Intermediate Representation (IR) Specification
 
-**Status:** Draft architectural specification. Implementation has not yet begun.  
+**Status:** Built supported subset; broader specification is Partial (2026-10-10).
+The normative requirements below are retained; gaps are not silently relaxed to match code.
+`src/ruleweaver/ir/rules.py`, `src/ruleweaver/ir/expressions.py` and
+`schemas/ruleweaver-0.1.schema.json` define today's serialized contract, exercised by
+`tests/test_schema_artifact.py`. Historical illustrative JSON below is not guaranteed to
+parse: it includes proposed envelope fields and unfinished constructs. Use
+`examples/snap/rules.json` as the actual fixture. No schema or implementation changes are
+made in this documentation revision.
 **Goal:** Define the minimum canonical representation needed for v0.1 without encoding one jurisdiction's vocabulary into the core.
 
 ## Design requirements
@@ -266,7 +273,7 @@ Legal rules frequently contain explicit exceptions. v0.1 should support a constr
 
 Priority semantics must be deterministic and validated.
 
-Long term, richer defeasibility may map to LegalRuleML or another formalism. Do not prematurely implement full defeasible logic in v0.1.
+Richer defeasibility requires demonstrated computable-policy cases. External standards exports are outside the active roadmap (ADR-032).
 
 ## Effective periods
 
@@ -551,3 +558,41 @@ Adapters must declare which IR versions/features they support.
 8. representation of human-required predicates.
 
 Do not resolve these through convenience alone. Each needs examples and tests.
+
+
+## Implementation evidence and unresolved specification differences
+
+**Built:** closed expression nodes, flat effective intervals, exceptions/overrides,
+entities, variables, dated parameter values, spans and ambiguity in the IR modules;
+`tests/test_models.py`, `tests/test_validators.py`, `tests/test_types.py` and
+`tests/test_snap_evaluation.py` exercise the supported shapes. `Rule.kind` uses
+`calculation`, not the historical `assignment` example. Parameter coordinates use `at`,
+not illustrative `when`. Current spans use source ID, citation, quote, term, node and
+character positions, not every selector shown above. Current package fields are
+schema_version/package_id/jurisdiction/description/entities/variables/parameters/rules/
+ambiguities; source manifests, tests, definitions, approvals and run metadata are separate.
+A broader combined content envelope is **Planned**, R-38/R-43.
+
+**Partial:** money is Decimal-valued; explicit currency and multi-jurisdiction support
+are not built (R-21). Date intervals exist; distinct assertion/validity/efficacy/
+enforcement axes adopted aspirationally in ADR-020 are not built (R-44). Human-required
+predicates remain outside current implemented scope; do not mistake a review status for
+an executable predicate. Automated concept extraction is **Planned**, R-40.
+
+**Planned — R-44, contradictions to resolve with regression evidence:**
+
+- `ConvertPeriod` admits `prorate_days`, but `runtime/evaluator.py` rejects methods other
+  than `divide`. Calendar prorating is not built.
+- The type checker does not enforce the period-compatibility requirement above. Explicit
+  conversion exists; automatic detection of incompatible periodicities is not built.
+- `Clamp` allows both bounds to be absent despite the normative at-least-one requirement.
+- `Rule` rejects all equal exception priorities at schema parsing, not only simultaneous
+  matches with a stable blocking diagnostic as specified above. This is stricter input
+  rejection, not proof that the specified diagnostic behavior exists.
+- Wrong-target overrides produce `RW3006` severity `error`, not the prescribed
+  `blocking`; both reject a package in `Report.ok`, but the stable severity contract differs.
+
+These are documented mismatches, not authorised semantic changes. A future fix must retain
+or explicitly revise the public contract with an ADR, schema/fixtures/migration notes and
+meaningful tests. Unknown-reason records (R-10), joined provenance (R-43) and complete
+review/test approval (R-45) remain separate requirements.

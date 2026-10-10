@@ -1,188 +1,56 @@
 # 06 — Verification, Safety, and Trust Model
 
-## Threat model
+RuleWeaver produces reviewable interpretations of benefit/tax rules. Official sources retain authority. The intended self-hosted workflow requires a person to approve both rules and parameter tables before deployed execution. It provides change impact plus independent verification, not an authoritative legal determination. See ADR-032 and `research/REQUIREMENTS.md`; intended-purpose statements are not legal advice and need counsel review before commercial use (R-25).
 
-RuleWeaver can fail in ways that look convincing. That is more dangerous than a visible crash.
+## Threats and current controls
 
-Primary failure classes:
+A plausible result can conceal a wrong interpretation, omitted exception, scope/definition mistake, wrong effective date, threshold error, stale table, false citation or adapter drift. Source text can contain instruction-like content. A user can mistake a passing test or signed-in reviewer for sufficient policy assurance.
 
-1. wrong interpretation;
-2. missed exception;
-3. wrong scope;
-4. wrong definition;
-5. wrong date/effective version;
-6. wrong threshold/operator;
-7. missing external reference;
-8. fabricated source link;
-9. adapter semantic drift;
-10. stale rules after amendment;
-11. prompt injection from source text;
-12. user treating a draft as authoritative.
+| Control | State and evidence | Remaining requirement |
+|---|---|---|
+| Typed closed expression AST and deterministic evaluator | **Built:** `src/ruleweaver/ir/expressions.py`, `runtime/evaluator.py`, `tests/test_snap_evaluation.py`; runtime has no model dependency. | Complete optional authoring packaging separation is **Partial**, R-26. |
+| Structural verification and source-span checking | **Built** for implemented checks: `src/ruleweaver/verify/validators.py`, `types.py`, `tests/test_validators.py`, `tests/test_provenance_validation.py`. Corpus checking requires a supplied corpus. | Completeness/contradiction and extended temporal validation are **Planned**, R-44. |
+| Hash-bound rule and parameter approval | **Built:** `src/ruleweaver/approval.py`, `tests/test_approval.py`, `tests/test_parameter_gate.py`: changes to approved structured objects or cited spans invalidate approval. | Universal deployed enforcement is **Planned**, R-39. |
+| Durable review events and hash chain | **Partial:** `src/ruleweaver/review/store.py`, `tests/test_review_store.py`: append API and unkeyed chain verification. | Administrator-resistant keyed chain, external key and exported checkpoints are **Planned**, R-05. A database administrator can rewrite and recompute today's chain. |
+| Reviewer authentication | **Partial:** `src/ruleweaver/review/identity.py`, `tests/test_identity.py`: signed token/trusted-proxy mechanisms and fail-closed configuration. | Shared-secret token minting does not establish independent reviewer identities or author/approver separation; **Planned**, R-06. |
+| Review fault seeding | **Built:** `src/ruleweaver/review/seeding.py`, `tests/test_seeding.py`: planted mutants, notice and aggregate catch rate; mutant decisions cannot approve/reject the real rule. | Reviewer qualification R-07, pseudonymous chain with separate identity map R-11 and accessible review R-29 are **Planned**. Aggregate metrics do not make stored identities pseudonymous. |
+| Request protections | **Built** for tested application routes: `tests/test_review_app.py`, `tests/test_service.py` cover Origin/CSRF and authenticated reads, request/rate limits and non-echoing validation responses (R-14). | These tests do not certify a production deployment or third-party proxy configuration. |
+| Replay record in calculation responses | **Built:** `src/ruleweaver/service/api.py`, `tests/test_service.py`: package hash, review-chain head and execution trace (R-08). | Full release provenance and lineage remain **Planned**, R-38/R-43. |
 
-## Safety principle
+## Approval is a deployment invariant with a remaining gap
 
-RuleWeaver produces **reviewable interpretations**, not law.
+**Built:** the calculation service and default OpenFisca export consult approval. Rule/parameter edits move the relevant hashes. Unapproved parameter values can be withheld, yielding unknown; overridden base rules are also withheld where dropping an unapproved override would otherwise change the interpretation (`tests/test_approval.py`, `tests/test_parameter_gate.py`).
 
-The authoritative source remains the authoritative source.
+**Planned, R-39:** enforce approval for every deployed execution entry point. CLI evaluation currently exposes optional `--require-approval`; direct `Evaluator` use is ungated. The intended rule that drafts cannot determine deployed results is stronger than current coverage. A status field or model confidence must never replace review-log evidence.
 
-## Human-in-the-loop policy
+**Planned:** record reviewer qualifications R-07, bind individual identities and separate author/approver R-06, and preserve pseudonymous reviewer IDs with a separately deletable identity map R-11. Hosting locally does not itself satisfy these requirements.
 
-### Required
+## Unknown, ambiguity and unsupported results
 
-Human review is required before a proposed semantic rule becomes part of an approved executable package.
+**Built:** `src/ruleweaver/runtime/values.py` and `evaluator.py` distinguish true, false, unknown and evaluation error; missing input is not silently false or zero. `tests/test_snap_evaluation.py` and `tests/test_parameter_gate.py` exercise propagation. `src/ruleweaver/ir/rules.py` carries blocking ambiguities, and validators diagnose unresolved blocking cases.
 
-### Model confidence
+**Planned, R-10:** unknown must expose reason codes, missing facts and integrator-selected block/hold/person-routing policy. A trace or generic unknown sentinel is not this facility. **Planned, R-44/R-45:** systematic ambiguity/completeness detection and review of resolutions. Unsupported source concepts and human judgment must remain visible rather than being guessed away.
 
-Model confidence may help prioritize review. It may not bypass review.
+## Provenance and source integrity
 
-### Reviewer roles
+**Built:** source manifests pin bytes and PDF renderings (`src/ruleweaver/ingest/corpus.py`, `tests/test_ingest.py`); typed spans connect rules, exceptions, parameters and individual parameter values to sources (`src/ruleweaver/ir/rules.py`, `tests/test_provenance_validation.py`). Review events bind reviewer actions to structured/source hashes (`review/decisions.py`, `tests/test_review.py`). Model call metadata records prompt/input/output hashes (`models/base.py`, `tests/test_models.py`).
 
-Long-term deployments may support:
+**Planned, R-43:** joined derivation and compilation/review/test lineage must answer which run proposed an object, which validations ran, which tests a reviewer approved, and which build produced its artifact. Separate records are not a complete relation graph. PROV export is outside the roadmap; internal traceability remains required.
 
-- compiler engineer;
-- policy reviewer;
-- legal reviewer;
-- approver/release manager.
+## Verification independence
 
-v0.1 can implement a simpler single-reviewer state while preserving room for role policies.
+**Built:** deterministic boundary/date generation and mutation execution (`src/ruleweaver/testgen/`, `tests/test_date_generation.py`, `tests/test_mutation.py`) and supported OpenFisca differential checks (`tests/test_openfisca_equivalence.py`). These detect some defects but can share the same interpretation mistake.
 
-## Abstention states
+**Planned:** independent parity against user known-answer cases R-17; a public independently annotated benchmark R-42; broader exception/combinatorial/property generation R-41 and explicit test review R-45. Preserve origins such as human policy intent, source worked example, structural boundary, mutation and adapter differential. Never overwrite human-approved intent tests with newly proposed tests.
 
-Compiler passes must be allowed to produce:
+## Change and release safety
 
-- `UNKNOWN` — required information is not available;
-- `AMBIGUOUS` — multiple plausible interpretations;
-- `UNSUPPORTED` — the IR/runtime cannot faithfully represent the source concept;
-- `NEEDS_EXTERNAL_SOURCE` — referenced information is absent;
-- `HUMAN_JUDGMENT_REQUIRED` — rule depends on discretion or contextual assessment;
-- `INVALID` — structured proposal fails deterministic checks.
+**Partial, R-16:** `src/ruleweaver/diff/semantic.py`, `impact.py` and `tests/test_amendment_impact.py` compare IR revisions, follow dependencies and rerun supplied scenarios. A dated source-to-rule-to-test change-impact deliverable is still needed. Changes must retain the previous snapshot, invalidate affected approval and require review before a new approved content pack.
 
-These are successful outputs when appropriate, not failures to be suppressed.
+**Planned:** versioned hashed content-pack artifact R-38, signed artifacts/SBOM R-13, current-law SNAP review R-22, nine-plus household increments R-36 and FY2027 tables R-37. FY2026 data is a dated reference, not proof of current benefit entitlement.
 
-## Provenance requirements
+## Source handling and self-hosting
 
-For each approved rule, the system must answer:
+**Built:** optional proposal handling fences untrusted source text and escalates suspicious instructions (`src/ruleweaver/models/guard.py`, `tests/test_compile.py`). Model output remains typed data; the deterministic adapter lowers supported IR rather than executing arbitrary model-written programs. These controls do not establish prompt-injection immunity.
 
-1. Which source document/version supports it?
-2. Which exact source span(s) support it?
-3. Which compiler/model run created the proposal?
-4. What deterministic validations ran?
-5. Which reviewer changed/approved it?
-6. Which tests were approved with it?
-7. Which adapter/compiler generated a target artifact?
-
-W3C PROV provides useful interoperability concepts:
-
-- Entity;
-- Activity;
-- Agent;
-- `wasDerivedFrom`;
-- `wasGeneratedBy`;
-- `used`;
-- `wasAttributedTo`.
-
-RuleWeaver does not need an RDF store in v0.1. It should preserve equivalent relations in its own typed data and export PROV later if useful.
-
-## Source integrity
-
-Each source snapshot should record:
-
-- source ID;
-- origin;
-- retrieval/import timestamp;
-- cryptographic hash;
-- declared jurisdiction;
-- effective/publication metadata if known;
-- license/reuse notes where applicable.
-
-Do not allow a silently changed remote URL to rewrite history.
-
-## Deterministic validator checklist
-
-An approved package build must verify:
-
-- valid schema;
-- all IDs unique;
-- references resolve;
-- types match operators;
-- parameters have compatible units/types;
-- rule effective periods are valid;
-- required parameter values exist for test periods;
-- exception priorities are resolvable;
-- no prohibited cycles exist;
-- blocking ambiguities are resolved;
-- required provenance exists;
-- mandatory tests pass.
-
-## Testing safety
-
-Generated tests must be labeled with origin.
-
-Why: a model can generate a rule and then generate tests that merely restate the same mistake. Passing those tests proves little.
-
-Maintain separate metadata:
-
-```text
-origin = human_policy_intent
-origin = source_example
-origin = generated_boundary
-origin = generated_mutation
-origin = adapter_differential
-```
-
-High-confidence releases should rely on human/source examples plus generated adversarial tests.
-
-## Differential verification
-
-When an adapter exists:
-
-```text
-RuleWeaver reference evaluator
-        vs
-Target runtime output
-```
-
-Run identical test cases. Any disagreement is an adapter/compiler defect or unsupported semantic difference until explained.
-
-## Amendment safety
-
-When a source changes:
-
-- do not automatically overwrite approved rules;
-- create a new source version;
-- compute source diff;
-- mark potentially affected rules stale;
-- identify dependency impact;
-- rerun/generate affected tests;
-- require review before publishing a new approved rule package.
-
-## Prompt-injection safety
-
-Policy documents are untrusted input.
-
-Compiler prompts must frame document text as quoted/data content. Instructions appearing inside source documents must not be treated as instructions to the model unless they are part of the policy semantics being analyzed.
-
-Never expose credentials/tools capable of destructive actions to a document-processing model without strict tool policies.
-
-## Code generation safety
-
-Do not directly execute model-generated Python/Catala/OpenFisca code.
-
-Preferred flow:
-
-```text
-LLM → RuleWeaver IR → deterministic adapter → target code
-```
-
-This dramatically reduces arbitrary-code risk and makes semantics auditable.
-
-## User-facing disclaimers
-
-The product should clearly state:
-
-- source authority lies with the referenced official materials;
-- RuleWeaver outputs are implementations/interpretations requiring review;
-- use in benefits/tax decisions requires appropriate governance and validation;
-- unresolved ambiguity is visible and intentional.
-
-Do not add alarming boilerplate everywhere. Put warnings at consequential transitions such as approval/export/use.
+Self-hosting with no supporter access to household data is the intended deployment model. **Planned, R-31:** operational zero-access support protocol; external authoring providers must not receive personal case data by default. The calculation service, OpenFisca and model authoring are frozen maintenance options. No hosted offering or certification is implied.
