@@ -27,11 +27,14 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 from decimal import Decimal
+from math import prod
 from pathlib import Path
 
 from ...approval import check
-from ...ir.rules import Rule, RulePackage
+from ...ir.expressions import Expr, Lit, Ref
+from ...ir.rules import Parameter, Rule, RulePackage, Variable
 from ...review.decisions import ReviewLog
 from ...verify.diagnostics import Diagnostic
 from .lowering import Lowered, Lowerer, Unlowerable
@@ -53,7 +56,9 @@ _UNKNOWN_WARNING = (
     "default — 0 for a number, False for a boolean — so a missing input is "
     "indistinguishable from a genuine zero. The RuleWeaver evaluator keeps those apart "
     "and propagates unknown instead. Determinations that depend on absent facts will "
-    "differ between the two, and the difference is a denial rather than a question."
+    "differ between the two, and the difference is an answer rather than a question: a "
+    "denial when the missing fact would have qualified the household, an approval when "
+    "it would have disqualified it — a blank income reads as no income."
 )
 
 
@@ -93,19 +98,37 @@ class Export:
         return "\n".join(lines)
 
 
+def _describe(expr: Expr) -> str:
+    """A short name for an expression, for a refusal message."""
+    if isinstance(expr, Ref):
+        return expr.id
+    return f"a {expr.op!r} expression"
+
+
 def _lower_rule(rule: Rule) -> Lowered:
     """Lower a rule and its exceptions into one formula.
 
     Prioritised defaults have a faithful vectorised form. The IR already requires every
     exception on a rule to carry a distinct priority, so the order is total and the
-    selection is decidable: highest priority whose condition holds wins, and the base
-    expression is the default. That is `np.select` with the cases sorted descending.
+    selection is decidable: the lowest-numbered exception whose condition holds wins, and
+    the base expression is the default. That is `np.select` with the cases ascending.
 
     `disable_base_rule` has no such form. It says the rule produces *nothing*, and
     OpenFisca has no way to express "no value" — the variable would silently take its type
     default, turning a suppressed rule into a zero. Those rules are refused rather than
     approximated.
+
+    A guard is refused for the same reason. When `when` does not hold the rule assigns
+    nothing, and the evaluator reports the target as unknown. This used to be dropped
+    silently, so the allotment — guarded by income eligibility — was computed for every
+    household, eligible or not.
     """
+    if not (isinstance(rule.when, Lit) and rule.when.value is True):
+        raise Unlowerable(
+            f"the rule applies only when {_describe(rule.when)} holds; otherwise it assigns "
+            "nothing, and OpenFisca cannot represent a variable with no value, so it would "
+            "become a zero")
+
     lowerer = Lowerer()
     base = lowerer.lower(rule.then.assign.value)
     if not rule.exceptions:
@@ -116,8 +139,15 @@ def _lower_rule(rule: Rule) -> Lowered:
             raise Unlowerable(
                 f"exception {exception.id} suppresses the base rule; OpenFisca cannot "
                 "represent a variable with no value, so it would become a zero")
+        if exception.substitute.assign.target != rule.then.assign.target:
+            raise Unlowerable(
+                f"exception {exception.id} assigns {exception.substitute.assign.target}, "
+                f"not {rule.then.assign.target}; one formula cannot assign two variables")
 
-    ordered = sorted(rule.exceptions, key=lambda e: e.priority, reverse=True)
+    # The lowest-numbered matching exception wins (docs/04_RULE_IR_SPEC.md, priority
+    # semantics), and np.select takes the first condition that holds — so ascending order.
+    # This was descending until the generated package was first run beside the evaluator.
+    ordered = sorted(rule.exceptions, key=lambda e: e.priority)
     conditions = []
     values = []
     for exception in ordered:
@@ -132,46 +162,91 @@ def _lower_rule(rule: Rule) -> Lowered:
     return lowerer.result
 
 
+def _entity(declared: Variable | None) -> str:
+    if declared is not None and declared.entity != "household":
+        return "Person"
+    return "Household"
+
+
+def _citation(sources: list) -> str:
+    if not sources:
+        return ""
+    span = sources[0]
+    citation = span.citation or span.source_id
+    if span.quote:
+        citation += f"\n        {span.quote}"
+    return citation
+
+
 def _variable_class(package: RulePackage, rule: Rule, lowered: Lowered) -> str:
-    """One `Variable` subclass for the target of one rule."""
+    """One `Variable` subclass for the target of one rule.
+
+    The formula is dated from the rule's `effective_from`, and `effective_to` becomes the
+    variable's `end`. Undated, a formula applies to every period OpenFisca is asked about,
+    so a rule would compute values for months before it was law.
+    """
     target = rule.then.assign.target
     declared = package.variable(target)
-    entity = "Household"
-    if declared is not None and declared.entity != "household":
-        entity = "Person"
+    entity = _entity(declared)
 
     value_type = _VALUE_TYPES.get(declared.value_type if declared else "decimal", "float")
     period = _PERIODS.get((declared.periodicity if declared else None) or "month", "MONTH")
-
-    citation = ""
-    if rule.sources:
-        span = rule.sources[0]
-        citation = span.citation or span.source_id
-        if span.quote:
-            citation += f"\n        {span.quote}"
 
     args = "person, period, parameters" if entity == "Person" else "household, period, parameters"
     body = lowered.source
     if entity == "Household" and lowered.person_vars:
         # Household formulas reach members through the entity, not through a bare name.
         body = body.replace("person(", "household.members(")
-        args = "household, period, parameters"
+    if entity == "Person" and lowered.household_vars:
+        # A member formula reads a household value through the member's household, which
+        # projects it onto each member. A bare `household` is not in scope.
+        body = re.sub(r"(?<![.\w])household\(", "person.household(", body)
+
+    formula = "formula_" + rule.effective_from.replace("-", "_")
+    end = ""
+    if rule.effective_to:
+        # The IR's effective_to is exclusive; OpenFisca's end is the last day it applies.
+        last = date.fromisoformat(rule.effective_to) - timedelta(days=1)
+        end = f"    end = {last.isoformat()!r}\n"
 
     return (
         f"class {_identifier(target)}(Variable):\n"
         f'    """{rule.id}\n\n'
-        f"    {citation}\n"
+        f"    {_citation(rule.sources)}\n"
         f'    """\n'
         f"    value_type = {value_type}\n"
         f"    entity = {entity}\n"
         f"    definition_period = {period}\n"
-        f"    label = {rule.id!r}\n\n"
-        f"    def formula({args}):\n"
+        f"    label = {rule.id!r}\n"
+        f"{end}\n"
+        f"    def {formula}({args}):\n"
         f"        return {body}\n"
     )
 
 
-def _module(package: RulePackage, classes: list[str], uses_numpy: bool) -> str:
+def _input_class(variable: Variable) -> str:
+    """A variable the caller supplies. No formula: OpenFisca reads it from the situation.
+
+    Without these, OpenFisca refuses any household at all — it will not accept a value
+    for a variable the tax-benefit system does not declare.
+    """
+    citation = _citation(variable.sources)
+    doc = variable.id + "\n\n    Input. Supplied by the caller; nothing here computes it."
+    if citation:
+        doc += f"\n\n    {citation}"
+    value_type = _VALUE_TYPES.get(variable.value_type, "float")
+    period = _PERIODS.get(variable.periodicity or "month", "MONTH")
+    return (
+        f"class {_identifier(variable.id)}(Variable):\n"
+        f'    """{doc}\n    """\n'
+        f"    value_type = {value_type}\n"
+        f"    entity = {_entity(variable)}\n"
+        f"    definition_period = {period}\n"
+        f"    label = {variable.id!r}\n"
+    )
+
+
+def _module(package: RulePackage, classes: list[str], names: list[str]) -> str:
     header = (
         f'"""Generated from {package.package_id} by RuleWeaver. Do not edit by hand.\n\n'
         f"Every variable here corresponds to one approved rule. Edit the rule package and\n"
@@ -183,23 +258,51 @@ def _module(package: RulePackage, classes: list[str], uses_numpy: bool) -> str:
     imports = "from openfisca_core.periods import DAY, MONTH, YEAR\n"
     imports += "from openfisca_core.variables import Variable\n"
     imports += "\nfrom .entities import Household, Person\n"
-    if uses_numpy:
-        imports = "import numpy as np\n\n" + imports
+    # numpy is always needed: the parameter-index helper below is vectorised.
+    imports = "import numpy as np\n\n" + imports
 
+    # OpenFisca formulas run over arrays — one entry per household — so a parameter index
+    # is an array, and the lookup must be too. The first version formatted one scalar;
+    # given an array it produced the key "[3.]", which matches nothing, and no dimensioned
+    # table could be read. That was invisible until the package was run.
     helper = (
         "\n\ndef _key(value):\n"
-        '    """Format a parameter index.\n\n'
+        '    """Format a parameter index, element by element.\n\n'
         "    An index that has been through np.clip is a float, and str(6.0) is \"6.0\",\n"
         "    which matches no parameter node. Whole numbers are formatted as integers so\n"
         "    the lookup finds the key the parameter file actually declares.\n"
         '    """\n'
-        "    try:\n"
-        "        as_float = float(value)\n"
-        "    except (TypeError, ValueError):\n"
-        "        return str(value)\n"
-        "    return str(int(as_float)) if as_float == int(as_float) else str(as_float)\n\n\n"
+        "    values = np.asarray(value)\n"
+        "    if values.dtype.kind not in \"fiu\":\n"
+        "        return values.astype(str)\n"
+        "    whole = np.round(values).astype(np.int64)\n"
+        "    return np.where(values == whole, whole.astype(str), values.astype(str))\n\n\n"
     )
-    return header + imports + helper + "\n\n".join(classes)
+    listing = "\n\nVARIABLES = [\n" + "".join(f"    {n},\n" for n in names) + "]\n"
+    return header + imports + helper + "\n\n".join(classes) + listing
+
+
+def _package_init(package: RulePackage) -> str:
+    """The entry point OpenFisca's own tooling looks for.
+
+    `openfisca test --country-package <name>` and `openfisca serve` import the package
+    and instantiate `CountryTaxBenefitSystem`. Variables are added from the explicit list
+    rather than with `add_variables_from_file`, which loads a file outside its package and
+    so cannot follow the relative import of the entity model.
+    """
+    return (
+        f'"""OpenFisca country package generated from {package.package_id} by RuleWeaver."""\n\n'
+        "from pathlib import Path\n\n"
+        "from openfisca_core.taxbenefitsystems import TaxBenefitSystem\n\n"
+        "from . import entities, variables\n\n\n"
+        "class CountryTaxBenefitSystem(TaxBenefitSystem):\n"
+        "    def __init__(self):\n"
+        "        super().__init__(entities.entities)\n"
+        "        self.add_variables(*variables.VARIABLES)\n"
+        '        parameters = Path(__file__).parent / "parameters"\n'
+        "        if parameters.is_dir():\n"
+        "            self.load_parameters(str(parameters))\n"
+    )
 
 
 def _entities() -> str:
@@ -222,6 +325,14 @@ def _entities() -> str:
         ")\n\n"
         "entities = [Household, Person]\n"
     )
+
+
+def _is_grid(parameter: Parameter) -> bool:
+    """Whether the coordinates in use form the full product of each dimension's keys."""
+    dimensions = sorted(parameter.dimensions)
+    present = {tuple(str(v.at.get(d)) for d in dimensions) for v in parameter.values}
+    axes = [{key[i] for key in present} for i in range(len(dimensions))]
+    return len(present) == prod(len(axis) for axis in axes)
 
 
 def _parameters_yaml(package: RulePackage,
@@ -254,9 +365,22 @@ def _parameters_yaml(package: RulePackage,
         if parameter.dimensions:
             # A dimensioned parameter becomes nested nodes keyed by coordinate, which is
             # how OpenFisca addresses a scale that is not a bracket schedule.
+            if not _is_grid(parameter) and diagnostics is not None:
+                # OpenFisca indexes a nested node with an array of keys only when every
+                # branch has the same children. A sparse table loads, then fails on the
+                # first lookup. Published tables are complete grids; a gap is a gap in
+                # the data, and filling it would be inventing policy.
+                diagnostics.append(Diagnostic(
+                    "RW8007", "error",
+                    f"parameter {parameter.id} is not a complete grid over "
+                    f"{', '.join(sorted(parameter.dimensions))}; OpenFisca cannot index it",
+                    object_id=parameter.id,
+                    suggestion="supply a value for every combination of coordinates"))
             grouped: dict[tuple[str, ...], list] = {}
             for value in parameter.values:
-                key = tuple(str(value.at[d]) for d in parameter.dimensions if d in value.at)
+                # Sorted, because the lowering indexes the dimensions in sorted order.
+                key = tuple(str(value.at[d]) for d in sorted(parameter.dimensions)
+                            if d in value.at)
                 grouped.setdefault(key, []).append(value)
             for key, values in sorted(grouped.items()):
                 node = "/".join(key)
@@ -314,10 +438,31 @@ def export(
                    "in the exported model",
         details={"detail": _UNKNOWN_WARNING}))
 
-    classes: list[str] = []
-    uses_numpy = False
+    # A "notwithstanding" rule carries the whole formula for its target; the rule it
+    # overrides is subsumed, as it is in the evaluator. Emitting both produced two classes
+    # with one name, and the override won only because it came later in the file.
+    overriders: dict[str, str] = {}
+    for rule in package.rules:
+        for overridden in rule.overrides:
+            overriders.setdefault(overridden, rule.id)
+
+    candidates: list[tuple[Rule, Lowered]] = []
+    assigned: dict[str, str] = {}
     for rule in package.rules:
         if approved is not None and rule.id not in approved:
+            continue
+        if rule.id in overriders:
+            result.skipped[rule.id] = (
+                f"overridden by {overriders[rule.id]}, which carries the formula for "
+                f"{rule.then.assign.target}")
+            continue
+        target = rule.then.assign.target
+        if target in assigned:
+            reason = (f"{target} is already assigned by {assigned[target]}; OpenFisca has "
+                      "one formula per variable")
+            result.skipped[rule.id] = reason
+            result.diagnostics.append(Diagnostic(
+                "RW8003", "warning", f"rule could not be lowered: {reason}", rule_id=rule.id))
             continue
         try:
             lowered = _lower_rule(rule)
@@ -327,9 +472,47 @@ def export(
                 "RW8003", "warning", f"rule could not be lowered: {exc}",
                 rule_id=rule.id))
             continue
+        assigned[target] = rule.id
+        candidates.append((rule, lowered))
 
-        uses_numpy = uses_numpy or lowered.uses_numpy
+    # OpenFisca has one flat namespace of variable names, so two ids sharing a leaf would
+    # silently become one variable.
+    inputs = [v for v in package.variables if v.input]
+    leaves: dict[str, str] = {}
+    for identifier in [v.id for v in inputs] + [r.then.assign.target for r, _ in candidates]:
+        leaf = _identifier(identifier)
+        if leaf in leaves and leaves[leaf] != identifier:
+            result.diagnostics.append(Diagnostic(
+                "RW8006", "error",
+                f"{identifier} and {leaves[leaf]} both become the OpenFisca variable {leaf}",
+                object_id=identifier, suggestion="rename one of them"))
+        leaves.setdefault(leaf, identifier)
+
+    # A formula that reads a variable nothing declares fails only when OpenFisca runs it.
+    # Refuse it here instead, transitively — the export-time form of the evaluator's
+    # unknown propagation under --partial.
+    declared = {_identifier(v.id) for v in inputs}
+    declared |= {_identifier(r.then.assign.target) for r, _ in candidates}
+    changed = True
+    while changed:
+        changed = False
+        for rule, lowered in list(candidates):
+            missing = sorted((lowered.person_vars | lowered.household_vars) - declared)
+            if not missing:
+                continue
+            reason = f"needs {', '.join(missing)}, which is not exported"
+            result.skipped[rule.id] = reason
+            result.diagnostics.append(Diagnostic(
+                "RW8003", "warning", f"rule could not be lowered: {reason}", rule_id=rule.id))
+            candidates.remove((rule, lowered))
+            declared.discard(_identifier(rule.then.assign.target))
+            changed = True
+
+    classes = [_input_class(v) for v in inputs]
+    names = [_identifier(v.id) for v in inputs]
+    for rule, lowered in candidates:
         classes.append(_variable_class(package, rule, lowered))
+        names.append(_identifier(rule.then.assign.target))
         result.exported.append(rule.id)
 
     if result.skipped and not result.exported:
@@ -337,7 +520,8 @@ def export(
             "RW8004", "error", "nothing was exported",
             suggestion="an empty country package is not a successful export"))
 
+    result.files["__init__.py"] = _package_init(package)
     result.files["entities.py"] = _entities()
-    result.files["variables.py"] = _module(package, classes, uses_numpy)
+    result.files["variables.py"] = _module(package, classes, names)
     result.files.update(_parameters_yaml(package, result.diagnostics))
     return result

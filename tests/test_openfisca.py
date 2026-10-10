@@ -1,9 +1,9 @@
-"""The OpenFisca adapter.
+"""The OpenFisca adapter, structurally.
 
-OpenFisca itself is not a dependency and is not installed, so these tests check what the
-adapter produces, not what OpenFisca does with it. That boundary is stated rather than
-hidden: the export is structurally checked here, and running the generated package against
-OpenFisca is an unverified claim until someone does it.
+These tests check what the adapter writes and need nothing but the base install. What
+OpenFisca does with it is tested in tests/test_openfisca_equivalence.py, which runs the
+generated package beside the evaluator when OpenFisca is installed. Several cases here
+pin, in the source text, a defect that harness found, so they hold without OpenFisca too.
 
 The tests that matter most are the refusals — an unapproved rule, a rule OpenFisca cannot
 represent, a parameter with no values. Silently producing a plausible-looking country
@@ -101,10 +101,55 @@ class TestExport:
         assert any(d.code == "RW8002" for d in result.diagnostics)
         assert not result.ok
 
-    def test_every_approved_rule_is_exported(self, package, approved_log):
+    def test_every_approved_rule_is_exported_or_refused_with_a_reason(self, package,
+                                                                      approved_log):
         result = export(package, log=approved_log)
-        assert len(result.exported) == len(package.rules)
-        assert result.skipped == {}
+        assert len(result.exported) == 13
+        assert set(result.skipped) == {"rule.snap.allotment",
+                                       "rule.snap.standard_deduction_computed"}
+        assert set(result.exported) | set(result.skipped) == {r.id for r in package.rules}
+
+    def test_a_guarded_rule_is_refused(self, package, approved_log):
+        """The allotment applies only to an income-eligible household. Its guard used to
+        be dropped, so the export computed an allotment for every household."""
+        result = export(package, log=approved_log)
+        assert "is_income_eligible" in result.skipped["rule.snap.allotment"]
+        assert any(d.code == "RW8003" and d.rule_id == "rule.snap.allotment"
+                   for d in result.diagnostics)
+
+    def test_an_overridden_rule_is_subsumed_not_duplicated(self, package, approved_log):
+        """Emitting both produced two classes named standard_deduction; the override won
+        only because it came later in the file."""
+        result = export(package, log=approved_log)
+        assert "overridden by rule.snap.standard_deduction_minimum" in \
+            result.skipped["rule.snap.standard_deduction_computed"]
+        classes = [n.name for n in ast.parse(result.files["variables.py"]).body
+                   if isinstance(n, ast.ClassDef)]
+        assert len(classes) == len(set(classes))
+
+    def test_every_input_variable_is_declared(self, package, approved_log):
+        """OpenFisca will not accept a value for a variable it does not declare, so
+        without these no household can be entered at all."""
+        module = export(package, log=approved_log).files["variables.py"]
+        classes = {n.name for n in ast.parse(module).body if isinstance(n, ast.ClassDef)}
+        inputs = {v.id.rsplit(".", 1)[-1] for v in package.variables if v.input}
+        assert inputs <= classes
+
+    def test_formulas_are_dated_from_the_rule(self, package, approved_log):
+        module = export(package, log=approved_log).files["variables.py"]
+        assert "def formula_2026_01_01(" in module
+        assert "def formula(" not in module
+
+    def test_the_package_has_an_entry_point(self, package, approved_log):
+        """What `openfisca test --country-package` looks for."""
+        init = export(package, log=approved_log).files["__init__.py"]
+        assert "class CountryTaxBenefitSystem(TaxBenefitSystem)" in init
+        ast.parse(init)
+
+    def test_the_module_imports_numpy_for_the_vectorised_key(self, package, approved_log):
+        module = export(package, log=approved_log).files["variables.py"]
+        assert module.count("import numpy as np") == 1
+        assert "np.where(" in module
 
     def test_a_rule_rejected_after_approval_stops_being_exported(self, package,
                                                                  approved_log):
@@ -139,7 +184,9 @@ class TestExport:
         project exists to avoid producing."""
         module = export(package, log=approved_log).files["variables.py"]
         tree = ast.parse(module)
-        classes = [n for n in tree.body if isinstance(n, ast.ClassDef)]
+        # Inputs are facts the caller supplies, not rules, so they carry no rule citation.
+        classes = [n for n in tree.body if isinstance(n, ast.ClassDef)
+                   and any(isinstance(f, ast.FunctionDef) for f in n.body)]
         assert classes
         for node in classes:
             doc = ast.get_docstring(node) or ""
@@ -183,7 +230,7 @@ class TestDryRun:
         """Available for inspecting what an export *would* contain. The docstring says it
         must not be deployed, and the gate says so again on the normal path."""
         result = export(package, require_approval=False)
-        assert len(result.exported) == len(package.rules)
+        assert len(result.exported) == 13
         assert not any(d.code == "RW8002" for d in result.diagnostics)
 
     def test_an_empty_package_is_not_a_successful_export(self):
@@ -239,7 +286,7 @@ class TestExportCommand:
         assert main(["export", str(FIXTURE), str(out), "--database", database,
                      "--force"]) == 1
         assert (out / "variables.py").exists()
-        assert "15 variable(s) exported" in capsys.readouterr().out
+        assert "13 variable(s) exported, 2 skipped" in capsys.readouterr().out
 
     def test_the_dry_run_says_it_must_not_be_deployed(self, tmp_path, capsys):
         from ruleweaver.cli import main
@@ -247,3 +294,110 @@ class TestExportCommand:
         out = tmp_path / "country"
         main(["export", str(FIXTURE), str(out), "--no-approval", "--force"])
         assert "must not be deployed" in capsys.readouterr().err
+
+
+def tiny(rules: list[dict], parameters: list[dict] | None = None,
+         variables: list[dict] | None = None) -> RulePackage:
+    """A package with one household input, `size`, and whatever the test adds."""
+    base_variables = [{"id": "var.household.size", "entity": "household",
+                       "value_type": "integer", "input": True}]
+    return RulePackage.model_validate({
+        "schema_version": "0.1.0", "package_id": "tiny", "jurisdiction": "nowhere",
+        "entities": [{"id": "household", "label": "Household"},
+                     {"id": "household_member", "label": "Member", "kind": "member",
+                      "member_of": "household"}],
+        "variables": base_variables + (variables or []),
+        "parameters": parameters or [],
+        "rules": rules,
+    })
+
+
+def rule(rule_id: str, target: str, value: dict, **extra) -> dict:
+    return {"id": rule_id, "kind": "calculation", "effective_from": "2026-01-01",
+            "when": {"op": "literal", "value": True},
+            "then": {"assign": {"target": target, "value": value}}, **extra}
+
+
+SIZE = {"op": "ref", "id": "var.household.size"}
+
+
+class TestDefectsTheHarnessFound:
+    """Each of these was found by running the export under OpenFisca. They are pinned
+    here in the generated source so they hold on an install without OpenFisca."""
+
+    def test_exceptions_are_selected_in_ascending_priority(self):
+        exceptions = [
+            {"id": f"exc.p{p}", "priority": p, "effect": "substitute",
+             "when": {"op": "literal", "value": True},
+             "substitute": {"assign": {"target": "var.household.tier",
+                                       "value": {"op": "literal", "value": p * 10}}}}
+            for p in (3, 1, 2)
+        ]
+        package = tiny([rule("rule.tier", "var.household.tier",
+                             {"op": "literal", "value": 0}, exceptions=exceptions)])
+        module = export(package, require_approval=False).files["variables.py"]
+        assert "[10, 20, 30]" in module, "lowest-numbered priority must be selected first"
+
+    def test_an_effective_to_becomes_the_last_day_it_applies(self):
+        package = tiny([rule("rule.x", "var.household.x", SIZE,
+                             effective_to="2027-01-01")])
+        module = export(package, require_approval=False).files["variables.py"]
+        assert "end = '2026-12-31'" in module
+
+    def test_a_member_formula_reads_household_values_through_its_household(self):
+        package = tiny([rule("rule.share", "var.member.share", SIZE)],
+                       variables=[{"id": "var.member.share", "entity": "household_member",
+                                   "value_type": "money"}])
+        module = export(package, require_approval=False).files["variables.py"]
+        assert "person.household('size', period)" in module
+
+    def test_a_rule_that_needs_an_unexported_variable_is_refused_transitively(self):
+        """The evaluator would report these unknown; OpenFisca would raise mid-run."""
+        guarded = rule("rule.a", "var.household.a", SIZE)
+        guarded["when"] = {"op": "gte", "left": SIZE, "right": {"op": "literal", "value": 2}}
+        package = tiny([
+            guarded,
+            rule("rule.b", "var.household.b", {"op": "ref", "id": "var.household.a"}),
+            rule("rule.c", "var.household.c", {"op": "ref", "id": "var.household.b"}),
+        ])
+        result = export(package, require_approval=False)
+        assert result.exported == []
+        assert "needs a," in result.skipped["rule.b"] + ","
+        assert "needs b," in result.skipped["rule.c"] + ","
+
+    def test_two_rules_for_one_variable_are_not_both_emitted(self):
+        package = tiny([rule("rule.one", "var.household.x", SIZE),
+                        rule("rule.two", "var.household.x", SIZE)])
+        result = export(package, require_approval=False)
+        assert result.exported == ["rule.one"]
+        assert "already assigned by rule.one" in result.skipped["rule.two"]
+
+    def test_two_ids_with_one_name_are_an_error(self):
+        package = tiny([rule("rule.m", "var.member.size", SIZE)],
+                       variables=[{"id": "var.member.size", "entity": "household_member",
+                                   "value_type": "integer"}])
+        result = export(package, require_approval=False)
+        assert any(d.code == "RW8006" for d in result.diagnostics)
+        assert not result.ok
+
+    def test_a_table_that_is_not_a_complete_grid_is_an_error(self):
+        """OpenFisca indexes a nested table with an array of keys only when every branch
+        has the same children. Filling the gap would be inventing policy."""
+        def at(size, place, v):
+            return {"effective_from": "2026-01-01", "value": v,
+                    "at": {"household_size": size, "jurisdiction": place}}
+
+        lookup = {"op": "parameter", "id": "param.limit", "args": {
+            "household_size": SIZE,
+            "jurisdiction": {"op": "literal", "value": "a"}}}
+        sparse = {"id": "param.limit", "value_type": "money",
+                  "dimensions": ["household_size", "jurisdiction"],
+                  "values": [at("1", "a", "10"), at("2", "a", "20"), at("2", "b", "25")]}
+        package = tiny([rule("rule.l", "var.household.l", lookup)], parameters=[sparse])
+        result = export(package, require_approval=False)
+        assert any(d.code == "RW8007" for d in result.diagnostics)
+
+        sparse["values"].append(at("1", "b", "15"))
+        complete = tiny([rule("rule.l", "var.household.l", lookup)], parameters=[sparse])
+        assert not any(d.code == "RW8007"
+                       for d in export(complete, require_approval=False).diagnostics)
