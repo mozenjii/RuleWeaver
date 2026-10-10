@@ -52,6 +52,8 @@ python -m venv .venv
 .venv/bin/python -m pytest -o addopts='' -q
 ```
 
+The reconciled suite passes **558 tests** with **92.14% coverage**; CI enforces 80%.
+
 Windows uses `.venv/Scripts/python.exe`. The pulled baseline passed **554 tests** with
 these extras; mypy checked 55 source files and ruff passed. Use a fresh repository-local
 temporary directory on Windows: OpenFisca's nested runner otherwise collects across

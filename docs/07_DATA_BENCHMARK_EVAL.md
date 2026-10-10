@@ -3,7 +3,7 @@
 ## Implementation snapshot and revised scope
 
 **Built:** SNAP fixtures, source manifests, boundary/date generators, mutation tests and
-OpenFisca equivalence checks (`examples/snap/`, `src/ruleweaver/testing/`,
+OpenFisca equivalence checks (`examples/snap/`, `src/ruleweaver/testgen/`,
 `tests/test_openfisca_equivalence.py`). These test the supported implementation.
 
 **Partial:** generated fault detection and semantic change impact (R-41, R-16).

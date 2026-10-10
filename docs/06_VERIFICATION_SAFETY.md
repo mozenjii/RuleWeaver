@@ -54,3 +54,7 @@ A plausible result can conceal a wrong interpretation, omitted exception, scope/
 **Built:** optional proposal handling fences untrusted source text and escalates suspicious instructions (`src/ruleweaver/models/guard.py`, `tests/test_compile.py`). Model output remains typed data; the deterministic adapter lowers supported IR rather than executing arbitrary model-written programs. These controls do not establish prompt-injection immunity.
 
 Self-hosting with no supporter access to household data is the intended deployment model. **Planned, R-31:** operational zero-access support protocol; external authoring providers must not receive personal case data by default. The calculation service, OpenFisca and model authoring are frozen maintenance options. No hosted offering or certification is implied.
+
+## Reconciled review safeguards
+
+**Built:** signed reviewer/item tokens for cookie-authenticated decisions, alongside Origin checks; approval blocks validation errors and edits validate the corrected package before recording. `tests/test_review_app.py` proves these routes. Complete source-version binding and universal deployed validation remain R-43/R-39.

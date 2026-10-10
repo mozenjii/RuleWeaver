@@ -564,7 +564,7 @@ Do not resolve these through convenience alone. Each needs examples and tests.
 
 **Built:** closed expression nodes, flat effective intervals, exceptions/overrides,
 entities, variables, dated parameter values, spans and ambiguity in the IR modules;
-`tests/test_models.py`, `tests/test_validators.py`, `tests/test_types.py` and
+`tests/test_schema_artifact.py`, `tests/test_validators.py`, `tests/test_types.py` and
 `tests/test_snap_evaluation.py` exercise the supported shapes. `Rule.kind` uses
 `calculation`, not the historical `assignment` example. Parameter coordinates use `at`,
 not illustrative `when`. Current spans use source ID, citation, quote, term, node and

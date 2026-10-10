@@ -28,7 +28,7 @@ R-21, R-22, R-23, R-26, R-43, R-45. See the roadmap for dependencies and exit ev
 
 | ID | Requirement | Pri | Status | Source |
 |---|---|---|---|---|
-| R-01 | Seeded faults are actually planted in the review queue, reviewers are told such tests exist, and catch-rate metrics are aggregate and pseudonymised by default | P0 | ✅ | #01 #07 #11 #12 #14 #20; monitoring limits #08 #13 |
+| R-01 | Seeded faults are actually planted in the review queue, reviewers are told such tests exist, and catch-rate metrics are aggregate and pseudonymised by default | P0 | 🟡 | #01 #07 #11 #12 #14 #20; monitoring limits #08 #13; planting and aggregation built, pseudonymisation remains R-11 |
 | R-02 | "Edit" works from the form and approves only the corrected rule | P0 | ✅ | verified fact 2 |
 | R-03 | Parameters are sourced, dated objects inside the approval gate, with a diagnostic for missing values | P0 | ✅ | #01 #03 #09 #20 |
 | R-04 | The shipped example package computes: complete tables, each value sourced | P0 | ✅ | verified fact 3 |

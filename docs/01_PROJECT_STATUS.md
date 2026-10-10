@@ -1,6 +1,6 @@
 # 01 — Project Status
 
-**Evidence date:** 2026-10-10. **Plan:** ADR-032, self-hosted compiler/verifier;
+**Evidence date:** 2026-10-11. **Plan:** ADR-032, self-hosted compiler/verifier;
 change impact plus independent known-answer verification. Requirement status and priority
 live in `research/REQUIREMENTS.md`. This is an evidence snapshot, not a second backlog.
 
@@ -14,7 +14,7 @@ live in `research/REQUIREMENTS.md`. This is an evidence snapshot, not a second b
 | Boundary/date candidates, mutation harness | `src/ruleweaver/testgen/`, `tests/test_date_generation.py`, `tests/test_mutation.py` |
 | eCFR hierarchical clauses, memo/notice canonical text, hashed snapshots/renderings | `src/ruleweaver/ingest/`, `tests/test_ingest.py`, `tests/test_markers.py` |
 | Rules and sourced dated tables in review gate | `src/ruleweaver/approval.py`, `tests/test_approval.py`, `tests/test_parameter_gate.py` |
-| Source/item review, edit decisions, planted faults and aggregate metrics | `src/ruleweaver/review/app.py`, `seeding.py`, `tests/test_review_app.py`, `tests/test_seeding.py` |
+| Source/item review, validated edits, cookie CSRF, planted faults and aggregate metrics | `src/ruleweaver/review/app.py`, `seeding.py`, `tests/test_review_app.py`, `tests/test_seeding.py` |
 | Calculation service with gating/replay records and limits, frozen | `src/ruleweaver/service/`, `tests/test_service.py` |
 | OpenFisca code/YAML export and executed differential harness, frozen | `src/ruleweaver/adapters/openfisca/`, `tests/test_openfisca.py`, `tests/test_openfisca_equivalence.py` |
 | Optional segmentation and rule proposals with prompt/run hashes, frozen | `src/ruleweaver/compile/`, `models/`, `tests/test_compile.py`, `tests/test_models.py` |
@@ -60,7 +60,9 @@ The pulled baseline `77184e6` passed **554 tests** after installing
 `.[dev,review,openfisca]`. Ruff passed; mypy passed on **55 source files**. Windows needs
 a fresh `--basetemp` inside `.pytest_cache/` on the repository's drive for the nested
 OpenFisca runner; the initial cross-drive run failed at a protected junction. No source
-change was required to pass. Final integration results are recorded in shared memory.
+change was required to pass. The reconciled main suite passes **558 tests** with **92.14% coverage**, above the
+80% CI gate; lint and type checking pass. Fresh base-install results and the merge
+record are in shared memory.
 
 `tests/test_snap_tables.py` re-reads FY2026 figures from pinned FNS/HHS snapshots and tests
 income-limit edges for household sizes 1–8. It explicitly tests unknown on 1 October 2026

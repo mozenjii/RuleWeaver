@@ -35,6 +35,11 @@ that matches it (see `.github/workflows/release.yml`).
 
 ### Safety
 
+- Reconcile cookie CSRF tokens and validation guards with rule editing and parameter
+  review. Corrected items must pass package validation before an edit is recorded.
+- Restore the 80% coverage gate in the full-extras CI job while retaining separate
+  core-install and software-package checks.
+
 - Parameter tables pass the approval gate like rules. An unapproved table supplies no
   values, so anything reading it is unknown; changing a number or its source makes the
   approval stale, so an annual uprating is reviewed. Each value can cite where it was
