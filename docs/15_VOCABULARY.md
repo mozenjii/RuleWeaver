@@ -120,19 +120,19 @@ does not yet carry.
 
 ## Constructs these terms force into IR v0.1
 
-This is the point of encoding real law before freezing the IR. Every construct below is
-required by the table above and is currently missing or unresolved.
+The initial gap list is reconciled here against the current implementation. Vocabulary
+agreement remains **Planned (R-40)**; the terms above still need an independent reader.
 
-| Construct | Forced by | Spec status |
-|---|---|---|
-| **Aggregation over group members** | `household_income` sums member income; `household_has_elderly_or_disabled_member` is an existential over members | open question 4 (`04:377`) — **required** |
-| **Period conversion** | annual poverty guideline ÷ 12 → monthly standard | open question 1 (`04:374`) — **required** |
-| **Explicit rounding** | "rounding the results upwards as necessary"; "rounded up to the nearest whole dollar" | open question 5 (`04:378`) — **required** |
-| **Parameter dimensions** | every threshold varies by `household_size` × `jurisdiction` | partially supported (`04:132`) |
-| **Schedule clamp / fold** | standard deduction fixed at the six-person value above six; poverty guideline increments above eight persons | **absent** — no fold in the AST |
-| **Substitutive exception** | shelter cap applies *unless* an elderly or disabled member is present | **absent** — only `disable_base_rule` exists (`04:261`) |
-| **Norm override** | `(d)(1)(iii)` opens "**Notwithstanding** paragraphs (d)(1)(i) and (d)(1)(ii)" — a floor that overrides the computed value | **absent** — no cross-rule precedence (ADR-020) |
-| **Ordered deduction sequence** | excess shelter is computed on income *after* deductions (d)(1)-(d)(5) | expressible via dependencies, but ordering is semantic and must be explicit |
+| Construct | Current state and evidence |
+|---|---|
+| Aggregation over members | **Built:** aggregate operators in `ir/expressions.py` and `runtime/evaluator.py` |
+| Period conversion | **Partial:** conversions exist; day proration and period checking remain R-44 |
+| Explicit rounding | **Built:** Round expressions and evaluator tests |
+| Parameter dimensions | **Built:** dated dimensioned tables, `tests/test_snap_tables.py` |
+| Schedule clamp and larger-household increment | **Partial:** Clamp exists; rounded per-member increments above eight remain R-36 |
+| Substitutive exception | **Built:** exception replacement and runtime tests |
+| Norm override | **Built:** explicit override relationships, validator and approval-gate tests |
+| Ordered deductions | **Built:** SNAP dependencies; independent policy verification remains R-17 |
 
 **Deliberately out of scope for v0.1:** household composition (273.1), categorical
 eligibility, work requirements and ABAWD time limits (273.7, 273.24), the standard utility

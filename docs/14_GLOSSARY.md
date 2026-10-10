@@ -1,5 +1,14 @@
 # 14 — Glossary
 
+These are domain definitions, not completion claims. Implementation status and proof
+live in `01_PROJECT_STATUS.md`; planned release contracts follow ADR-032.
+
+## Content pack
+
+A separately versioned release containing source snapshots and hashes, approved IR,
+parameter tables, review evidence, independent tests and change-impact reports.
+**Planned (R-38)**; the software wheel and example RulePackage are not this release.
+
 ## Authoritative source
 
 The official or designated legal/policy material from which an implementation is derived. RuleWeaver output is not the authoritative source.
@@ -22,7 +31,7 @@ The canonical typed intermediate representation between natural-language source 
 
 ## Rule package
 
-A versioned artifact containing sources, rules, parameters, definitions, provenance, tests, review states, and metadata.
+The typed serialized RulePackage holds semantic objects and metadata. Source snapshots, tests and review records currently live separately. Bundling them into a releasable content pack is planned (R-38).
 
 ## Proposal
 
@@ -114,7 +123,7 @@ A comparison of rule meaning/parameters/dependencies between versions, not merel
 
 ## Stale rule
 
-An approved rule whose supporting source changed and therefore requires re-evaluation/review.
+An approval whose recorded rule or embedded source-span digest differs from the current object. A changed source snapshot alone is not currently enough to invalidate it; verified source-version binding is partial (R-43).
 
 ## Abstention
 

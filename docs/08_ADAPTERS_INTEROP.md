@@ -1,5 +1,23 @@
 # 08 — Adapters and Interoperability
 
+## Implementation snapshot and scope
+
+**Built:** OpenFisca code generation, parameter/YAML export and differential execution
+(`src/ruleweaver/adapters/openfisca/`, `tests/test_openfisca_equivalence.py`).
+**Partial:** representable subset and approval integration; default CLI export checks
+approval, while explicit draft bypass exists (R-39). Equivalence detects disagreement
+between implementations; it does not certify policy intent (R-17).
+
+**Planned:** an independent known-answer comparison command (R-17), content-pack
+release metadata (R-38), and a published capability matrix. Maintain OpenFisca as the
+single supported target; its runtime dependency carries an AGPL license and deployment
+licensing needs review. No statutory or licensing conclusion follows from an export.
+
+**Planned, cut from active scope by ADR-032:** Catala, Akoma Ntoso, LegalRuleML and
+PROV interchange. The sections below describe possible mappings, not implemented
+adapters or scheduled v1 commitments. Capability negotiation and the conceptual
+interface are also **Planned**; the current exporter uses its actual module API.
+
 ## Adapter principle
 
 RuleWeaver does not replace existing legal/rules-as-code ecosystems.
@@ -38,7 +56,7 @@ That overlaps strongly with RuleWeaver's v0.1 domain.
 
 RuleWeaver preserves proposed/ambiguous/review semantics and richer provenance that should not be forced into OpenFisca concepts.
 
-The adapter exports approved, representable semantics only.
+Deployed exports must contain approved, representable semantics only (R-39). The explicit draft bypass must not be used to release a ruleset.
 
 ### Adapter validation
 
@@ -88,7 +106,7 @@ LegalRuleML can represent legal normative concepts including:
 
 RuleWeaver v0.1 should not attempt to implement all LegalRuleML semantics.
 
-Instead:
+The deferred design, if reopened through an ADR, is:
 
 1. build a small IR suited to computable tax/benefit rules;
 2. preserve enough metadata for future mapping;

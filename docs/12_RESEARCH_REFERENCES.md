@@ -4,6 +4,15 @@
 
 This file contains the external foundations that informed the architecture. It is not a substitute for reading the specifications when implementing adapters or standards support.
 
+## Scope and evidence boundary
+
+This is a historical reference map. Its links and research summaries have not been
+refreshed for the current documentation pass. ADR-032 defines the active scope;
+Catala, LegalRuleML, Akoma Ntoso and PROV exports are **Planned, cut from active v1**.
+The open research tasks below are **Planned (R-40, R-42, R-44, R-46)** or deferred
+interoperability research. The SNAP fixture already exists; corpus selection below
+refers to a future independently reviewed benchmark, not the first implementation.
+
 ## 1. OpenFisca
 
 ### Why it matters
@@ -72,7 +81,7 @@ RuleWeaver use:
 
 LegalRuleML is an OASIS standard for machine-readable legal norms/rules. It covers much richer semantics than RuleWeaver v0.1, including temporality, jurisdiction, defeasibility, deontic concepts, and source-rule correspondence.
 
-RuleWeaver should not reimplement all of LegalRuleML. It should export supported subsets later.
+RuleWeaver should not reimplement all of LegalRuleML. A supported-subset export is deferred, outside the active v1 plan.
 
 ### Source
 

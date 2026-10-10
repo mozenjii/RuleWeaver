@@ -1,5 +1,25 @@
 # 07 — Data, Benchmark, and Evaluation Plan
 
+## Implementation snapshot and revised scope
+
+**Built:** SNAP fixtures, source manifests, boundary/date generators, mutation tests and
+OpenFisca equivalence checks (`examples/snap/`, `src/ruleweaver/testing/`,
+`tests/test_openfisca_equivalence.py`). These test the supported implementation.
+
+**Partial:** generated fault detection and semantic change impact (R-41, R-16).
+Exception/combinatorial/property coverage and affected-test discovery remain planned.
+
+**Planned:** independent known-answer parity (R-17), an expert-annotated public
+benchmark with held-out splits and reproducible metrics (R-42), and the England
+Universal Credit corpus (R-46, owner decision). No public benchmark, measured extraction
+accuracy or expert policy certification is claimed. Simulated market reviews in
+`research/` are hypotheses, not interviews or benchmark results.
+
+The task families and release stages below are research designs, all **Planned
+(R-42)**. Their existence does not authorize expansion beyond ADR-032. First deliver
+a source-bound content pack (R-38), change-impact report (R-16) and independent parity
+(R-17). Keep optional proposal experiments frozen while those are incomplete.
+
 ## Why the benchmark matters
 
 A strong public benchmark may become one of RuleWeaver's most important contributions.
