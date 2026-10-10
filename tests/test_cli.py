@@ -96,10 +96,12 @@ class TestDiff:
     def test_scenario_shows_what_actually_moves(self, capsys):
         main(["diff", str(FIXTURE), str(AMENDMENT),
               "--scenario", str(SCENARIO),
-              "--observe", "var.household.net_monthly_income"])
+              "--observe", "var.household.net_monthly_income",
+              "--observe", "var.household.allotment"])
         out = capsys.readouterr().out
         assert "LEGISLATIVE CHANGE IMPACT" in out
-        assert "594.0000 -> 481.5000" in out
+        assert "586.5000 -> 474.0000" in out
+        assert "allotment  609 -> 642" in out
 
 
 class TestApprovalGate:
@@ -180,7 +182,8 @@ class TestIngestCommand:
         assert main(["ingest", str(self.MANIFEST)]) == 0
         out = capsys.readouterr().out
         assert "snap-us-federal" in out
-        assert "3 sources" in out
+        assert "5 sources" in out
+        assert "fns-snap-cola-fy2026" in out
 
     def test_prints_a_clause_by_citation(self, capsys):
         assert main(["ingest", str(self.MANIFEST), "--clause", "7 CFR 273.9(d)(2)"]) == 0
@@ -231,14 +234,21 @@ class TestReviewCommand:
 
 class TestServeWarnings:
     def test_empty_parameter_tables_are_named_at_startup(self, capsys):
-        """The shipped example omits the published tables; serving it must say so."""
+        """A package missing a published table must say so when it is served."""
         from ruleweaver.cli import _warn_empty_parameters
 
         package = RulePackage.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+        package.parameter("param.snap.fpl_annual").values.clear()
         empty = _warn_empty_parameters(package)
         err = capsys.readouterr().err
-        assert len(empty) == 6
+        assert empty == ["param.snap.fpl_annual"]
         assert "param.snap.fpl_annual" in err and "evaluates to unknown" in err
+
+    def test_the_shipped_example_is_complete(self, capsys):
+        from ruleweaver.cli import _warn_empty_parameters
+
+        package = RulePackage.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+        assert _warn_empty_parameters(package) == []
 
     def test_a_complete_package_warns_about_nothing(self, capsys):
         from conftest import with_tables

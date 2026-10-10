@@ -317,6 +317,29 @@ gap can approve as well as deny.
   household a standard deduction of 180, below the 204 minimum. An approved rule that an
   unapproved rule overrides is now withheld, and its value is unknown.
 
+### Official tables, 2026-10-10
+
+The shipped package used to declare six published tables and leave them empty, so every
+headline answer was unknown and every test supplied its own numbers. It now carries the
+FY2026 figures for the 48 states and DC (1 October 2025 to 30 September 2026):
+
+- poverty guidelines from the HHS notice, 90 FR 5917; allotments, deductions, the shelter
+  cap and the minimum benefit from the FNS cost-of-living memo of 13 August 2025;
+- both documents stored in `examples/snap/sources/` with their sha256, and the PDF's text
+  rendering pinned separately, because that is what a quote is checked against;
+- every value cites its row, and `validate --sources` checks each quoted figure against
+  the stored text — value-level citations were not checked at all before;
+- `tests/test_snap_tables.py` re-reads every figure from the documents, and runs the
+  income tests at the edge of each limit FNS published: all sixteen agree, rounding
+  included.
+
+What it found: the OpenFisca export ignored a value's end date, so the FY2026 figures
+would have applied in OpenFisca for ever while the evaluator answers unknown from
+1 October 2026; and it wrote text into YAML unquoted. Both are fixed. And FNS sets the
+limits for a ninth member by adding a rounded increment, a dollar above what the poverty
+line gives — so the tables stop at eight rather than produce an answer that could be a
+dollar wrong at the edge (R-36).
+
 ### Deployment, 2026-10-10
 
 - Docker image for the reviewer application: installs the built wheel, runs as a

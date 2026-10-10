@@ -18,7 +18,7 @@ up to what the project should be able to claim.
 | R-01 | Seeded faults are actually planted in the review queue, reviewers are told such tests exist, and catch-rate metrics are aggregate and pseudonymised by default | P0 | ✅ | #01 #07 #11 #12 #14 #20; monitoring limits #08 #13 |
 | R-02 | "Edit" works from the form and approves only the corrected rule | P0 | ✅ | verified fact 2 |
 | R-03 | Parameters are sourced, dated objects inside the approval gate, with a diagnostic for missing values | P0 | ✅ | #01 #03 #09 #20 |
-| R-04 | The shipped example package computes: complete tables, each value sourced | P0 | ⬜ | verified fact 3 |
+| R-04 | The shipped example package computes: complete tables, each value sourced | P0 | ✅ | verified fact 3 |
 | R-05 | The audit chain resists an administrator: keyed chain with a key held outside the database, plus checkpoint export and verify | P0 | ⬜ | #14 #16 #20 |
 | R-06 | One identity per reviewer (OIDC/SSO or per-user keys), not one shared secret that can mint any name; author and approver kept separate | P0 | ⬜ | #04 #07 #16 #20 |
 | R-07 | A reviewer's qualification is recorded with each sign-off, and the signer role is assignable to the buyer's own staff | P1 | ⬜ | #12 #04 #10 #11 (tribunal ruling 4) |
@@ -42,13 +42,15 @@ up to what the project should be able to claim.
 |---|---|---|---|---|
 | R-16 | Change-impact report as a deliverable: what changed in the source, which rules, tests and results it moves, dated and readable | P1 | 🟡 | #01 #04 #06 #07 #08 #11 #12 #18 |
 | R-17 | Parity command against a user's own known-answer cases, with a publishable result | P1 | ⬜ | #02 #03 #05 #09 #12 #14 #18 #20 |
-| R-18 | HTML and PDF ingestion (state manuals, guidance, bulletins) | P1 | ⬜ | #01 #02 #03 #04 #06 #07 #18 #20 |
+| R-18 | HTML and PDF ingestion (state manuals, guidance, bulletins) — memos and notices load as one checked text today; clause structure still missing | P1 | 🟡 | #01 #02 #03 #04 #06 #07 #18 #20 |
 | R-19 | legislation.gov.uk point-in-time ingestion | P1 | ⬜ | #09 #10 #11 #12 #18 |
 | R-20 | EU sources (national XML, EUR-Lex) for the first EU domain | P2 | ⬜ | #08 #10 #11 |
 | R-21 | Currency on money values; more than one jurisdiction in a package | P1 | ⬜ | #20 |
 | R-22 | Check the SNAP fixture against current law (2025 legislation may have changed it) | P1 | ⬜ | #02 #18 |
 | R-23 | Language-neutral export: JSON rules plus test vectors | P1 | ⬜ | #01 #03 #09 |
 | R-24 | Obligation-register mode for clauses that are duties, not calculations | P2 | ⬜ | #04 #07 |
+| R-36 | Households of nine or more. FNS adds a rounded increment per member ($459 net, $596 gross), a dollar above recomputing from the poverty line, so this needs a rule for the increment, not more table rows | P1 | ⬜ | found by `tests/test_snap_tables.py` |
+| R-37 | The FY2027 tables (memo of August 2026, in force from 1 October 2026) — until then the package answers unknown after 30 September 2026 | P1 | ⬜ | found by R-04 |
 
 ## D. Compliance posture
 

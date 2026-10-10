@@ -6,6 +6,21 @@ that matches it (see `.github/workflows/release.yml`).
 
 ## Unreleased
 
+### Content
+
+- The SNAP example computes. It carries the official FY2026 tables for the 48 states and
+  DC — poverty guidelines, maximum allotments, standard deductions, the shelter cap and
+  the minimum benefit — each value citing the row of the FNS memo or HHS notice it came
+  from. Both documents are stored with their checksums. The income limits the rules
+  compute equal the limits FNS published for household sizes one to eight.
+- The source corpus reads memos and notices (plain text, HTML, or a PDF through a pinned
+  text rendering) as well as eCFR XML, and `validate --sources` now checks the citation
+  on every parameter value, not only on the parameter.
+- The baseline scenario no longer supplies its own tables, and the amendment example is
+  regenerated from the current package: raising the earned income deduction to 25% moves
+  the baseline household's net income from 586.50 to 474.00 and its allotment from 609
+  to 642.
+
 ### Safety
 
 - Parameter tables pass the approval gate like rules. An unapproved table supplies no
@@ -36,6 +51,9 @@ that matches it (see `.github/workflows/release.yml`).
   before their effective date, and could not read dimensioned tables.
 - New diagnostics: `RW8006` (two ids become one OpenFisca name) and `RW8007` (a
   dimensioned table that is not a complete grid).
+- A parameter value's end date is exported as `value: null`; the last figure used to
+  apply for ever. Text in parameter files is quoted, and each table cites its own
+  publication.
 
 ### Deployment
 

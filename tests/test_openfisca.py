@@ -27,6 +27,10 @@ from ruleweaver.review import Decision, ReviewEvent, ReviewLog
 
 @pytest.fixture()
 def approved_log(package: RulePackage) -> ReviewLog:
+    return approve_all(package)
+
+
+def approve_all(package: RulePackage) -> ReviewLog:
     log = ReviewLog()
     for rule_id, (rule_hash, source_hash) in current_hashes(package).items():
         log.append(ReviewEvent(rule_id=rule_id, reviewer="alice",
@@ -198,11 +202,13 @@ class TestExport:
         module = export(package, log=approved_log).files["variables.py"]
         assert "np.select(" in module
 
-    def test_a_parameter_with_no_values_is_an_error(self, package, approved_log):
-        """The fixture cites published FNS tables it does not contain. The export is
-        structurally complete and will not run until they are supplied — which is a
-        finding, not something to paper over with an empty file."""
-        result = export(package, log=approved_log)
+    def test_a_parameter_with_no_values_is_an_error(self, package):
+        """A package that cites a published table it does not contain exports a
+        structurally complete package that will not run until the table is supplied —
+        which is a finding, not something to paper over with an empty file."""
+        package = package.model_copy(deep=True)
+        package.parameter("param.snap.fpl_annual").values.clear()
+        result = export(package, log=approve_all(package))
         empty = [d for d in result.diagnostics if d.code == "RW8005"]
         assert empty
         assert not result.ok
@@ -280,11 +286,8 @@ class TestExportCommand:
         database = f"sqlite:///{tmp_path / 'review.db'}"
         self.approve_all(database)
 
-        # Exits non-zero: the fixture's published tables are missing, so the export is
-        # incomplete. The files are still written, because seeing them is how you find out
-        # what is missing.
         assert main(["export", str(FIXTURE), str(out), "--database", database,
-                     "--force"]) == 1
+                     "--force"]) == 0
         assert (out / "variables.py").exists()
         assert "13 variable(s) exported, 2 skipped" in capsys.readouterr().out
 
@@ -401,3 +404,31 @@ class TestDefectsTheHarnessFound:
         complete = tiny([rule("rule.l", "var.household.l", lookup)], parameters=[sparse])
         assert not any(d.code == "RW8007"
                        for d in export(complete, require_approval=False).diagnostics)
+
+
+class TestParameterFiles:
+    def test_text_is_quoted(self, package):
+        """A note with a colon in it used to be written into YAML bare."""
+        package = package.model_copy(deep=True)
+        package.parameter("param.snap.shelter_cap").note = "Cap: see the memo's table"
+        files = export(package, require_approval=False).files
+        assert 'description: "Cap: see the memo\'s table"' in \
+            files["parameters/snap/shelter_cap/48_dc.yaml"]
+
+    def test_a_row_cites_its_own_publication(self, package):
+        files = export(package, require_approval=False).files
+        assert "reference: \"USDA FNS" in files["parameters/snap/shelter_cap/48_dc.yaml"]
+
+    def test_an_ended_value_is_closed(self, package):
+        files = export(package, require_approval=False).files
+        assert "2025-10-01:\n    value: 744\n  2026-10-01:\n    value: null" in \
+            files["parameters/snap/shelter_cap/48_dc.yaml"]
+
+    def test_a_value_followed_by_the_next_years_is_not_closed(self, package):
+        package = package.model_copy(deep=True)
+        cap = package.parameter("param.snap.shelter_cap")
+        cap.values.append(cap.values[0].model_copy(update={
+            "effective_from": "2026-10-01", "effective_to": None, "value": "800"}))
+        text = export(package, require_approval=False).files[
+            "parameters/snap/shelter_cap/48_dc.yaml"]
+        assert "null" not in text and "value: 800" in text

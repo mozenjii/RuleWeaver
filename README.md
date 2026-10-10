@@ -70,6 +70,10 @@ OpenFisca / Catala / LegalRuleML / other adapters
       verified against its recorded sha256 before it is read.
 - [x] Golden corpus: 15 SNAP rules from 7 CFR 271.2, 273.9 and 273.10, **every one of
       whose 16 citations resolves to verbatim text in the clause it names**.
+- [x] Official tables: the FY2026 figures for the 48 states and DC, each value citing the
+      row of the FNS memo or HHS notice it came from, both stored and checksummed. The
+      income limits the rules compute **equal the limits FNS published** for every
+      household size from one to eight.
 - [x] LLM compilation — clause segmentation and rule extraction, behind six checks the
       model cannot talk its way past.
 - [x] Provider-neutral model interface (Claude + GPT) with prompt-injection guard.
@@ -91,7 +95,10 @@ OpenFisca / Catala / LegalRuleML / other adapters
 - [ ] **The allotment in the OpenFisca export.** The benefit amount applies only to an
       income-eligible household, and OpenFisca cannot represent "no value" for the rest,
       so the rule is refused (ADR-031). Exporting it needs a decision, not more code.
-- [ ] PDF and Akoma Ntoso ingestion.
+- [ ] Structured PDF, HTML and Akoma Ntoso ingestion. A memo or notice is read today as
+      one block of text, enough to check a quoted figure but not to cite a clause.
+- [ ] Households of nine or more: the tables stop at eight (see R-36 in
+      `research/REQUIREMENTS.md`), so those answers are unknown.
 - [ ] Parameter extraction — thresholds still come from the hand-encoded package.
 - [ ] Public benchmark.
 
@@ -102,9 +109,9 @@ See [`docs/01_PROJECT_STATUS.md`](docs/01_PROJECT_STATUS.md) for the detailed st
 ```bash
 python -m venv .venv
 .venv/bin/pip install -e ".[dev]"        # Windows: .venv/Scripts/pip
-pytest                                    # 346 tests; the rest skip without extras
+pytest                                    # 403 tests; the rest skip without extras
 .venv/bin/pip install -e ".[dev,review,openfisca]"
-pytest                                    # 427 tests
+pytest                                    # 554 tests
 ```
 
 Check a rule package, then run a household through it:
@@ -117,14 +124,22 @@ ruleweaver evaluate examples/snap/rules.json examples/snap/scenarios/baseline.js
 The trace shows which rule produced each value, which is the point:
 
 ```text
-var.household.standard_deduction      = 204   [rule.snap.standard_deduction_minimum base]
-var.household.excess_shelter_deduction = 402  [exception:exception.snap.shelter_cap_applies]
-var.household.is_income_eligible      = True  [rule.snap.income_eligible base]
+var.household.standard_deduction = Decimal('209')  [rule.snap.standard_deduction_minimum base household]
+var.household.excess_shelter_deduction = Decimal('404.5000')  [rule.snap.excess_shelter_deduction exception:exception.snap.shelter_cap_applies household]
+var.household.is_income_eligible = True  [rule.snap.income_eligible base household]
+var.household.allotment = Decimal('609')  [rule.snap.allotment base household]
 ```
 
 The first line is a *notwithstanding* clause overriding a computed value; the second is a
-substitutive exception applying a cap because the household has no elderly or disabled
-member. Both are traceable to the clause that requires them.
+substitutive exception applying the shelter cap because the household has no elderly or
+disabled member. Both are traceable to the clause that requires them.
+
+The figures are the official ones for 1 October 2025 to 30 September 2026 in the 48 states
+and DC: the FNS cost-of-living memo and the HHS poverty guidelines are stored in
+`examples/snap/sources/` with their checksums, every value cites the row it came from, and
+`ruleweaver validate --sources examples/snap/sources/manifest.json` checks each quoted figure
+against the stored text. A test recomputes the income limits from the poverty guidelines
+and compares them with the limits FNS published.
 
 A missing input never becomes a denial — it evaluates to `UNKNOWN` and propagates:
 
@@ -174,18 +189,22 @@ Ask what a change to the law actually does to real households:
 ruleweaver diff examples/snap/rules.json \
                 examples/snap/amendments/earned-deduction-25pct.json \
                 --scenario examples/snap/scenarios/baseline.json \
-                --observe var.household.net_monthly_income
+                --observe var.household.net_monthly_income \
+                --observe var.household.allotment
 ```
 
 ```text
 1 semantic, 0 cosmetic
-  [SEMANTIC] parameter_value_changed param.snap.earned_income_deduction_rate: 0.20 -> 0.25
+  [SEMANTIC] parameter_value_changed param.snap.earned_income_deduction_rate: 0.20 -> 0.25 effective 1978-01-01
 
 LEGISLATIVE CHANGE IMPACT
   directly affected rules     1
-  transitively affected rules 5
+  transitively affected rules 7
+  scenarios run               1
   scenarios with a changed outcome 1
-    baseline: net_monthly_income  594.0000 -> 481.5000
+  outcome changes:
+    baseline: net_monthly_income  586.5000 -> 474.0000
+    baseline: allotment  609 -> 642
 ```
 
 A reworded citation is reported as cosmetic and stops there. Only a change in meaning

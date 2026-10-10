@@ -94,8 +94,14 @@ class TestGate:
 class TestDiagnostics:
     def test_an_empty_table_is_reported(self):
         shipped = RulePackage.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+        assert not [d for d in validate(shipped).diagnostics if d.code == "RW3011"]
+        shipped.parameter("param.snap.fpl_annual").values.clear()
         codes = [(d.code, d.object_id) for d in validate(shipped).diagnostics]
         assert ("RW3011", "param.snap.fpl_annual") in codes
+
+    def test_the_shipped_values_are_all_sourced(self):
+        shipped = RulePackage.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+        assert not [d for d in validate(shipped).diagnostics if d.code == "RW7004"]
 
     def test_a_value_with_no_source_anywhere_is_reported(self, package):
         bare = package.parameter("param.snap.shelter_cap").model_copy(update={"sources": []})

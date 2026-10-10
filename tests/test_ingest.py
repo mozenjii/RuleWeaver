@@ -70,7 +70,9 @@ class TestManifestVerification:
 
 class TestParsing:
     def test_every_source_is_present(self, corpus):
-        assert set(corpus.documents) == {"7cfr-271.2", "7cfr-273.9", "7cfr-273.10"}
+        assert set(corpus.documents) == {"7cfr-271.2", "7cfr-273.9", "7cfr-273.10",
+                                         "fns-snap-cola-fy2026",
+                                         "hhs-poverty-guidelines-2025"}
 
     def test_the_hierarchy_is_almost_entirely_certain(self, corpus):
         """Not a vanity metric: an uncertain clause has a citation that may be wrong, so
@@ -207,3 +209,46 @@ class TestParseDirectly:
         first = parse_file(SOURCES / "7cfr-273.9.xml", source_id="7cfr-273.9")
         second = parse_file(SOURCES / "7cfr-273.9.xml", source_id="7cfr-273.9")
         assert first.content_hash == second.content_hash
+
+
+class TestUnstructuredSources:
+    """The memo and the notice that carry the published figures: no clauses, one text."""
+
+    def test_they_load_as_one_block_of_text(self, corpus):
+        memo = corpus["fns-snap-cola-fy2026"]
+        assert memo.clauses == []
+        assert "Fiscal Year 2026 Cost-of-Living Adjustments" in memo.text
+        notice = corpus["hhs-poverty-guidelines-2025"]
+        assert "<" not in notice.text, "markup is dropped"
+        assert "For families/households with more than 8 persons, add $5,500" in \
+            " ".join(notice.text.split())
+
+    def test_a_quote_is_checked_against_the_whole_text(self, corpus):
+        span = SourceSpan(source_id="fns-snap-cola-fy2026",
+                          citation="Maximum Excess Shelter Deductions",
+                          quote="48 States and D.C. $744")
+        assert resolve_span(span, corpus.documents)
+        wrong = span.model_copy(update={"quote": "48 States and D.C. $745"})
+        assert not resolve_span(wrong, corpus.documents)
+
+    def test_the_text_rendering_of_a_pdf_is_pinned(self, tmp_path):
+        """Quotes are checked against the extracted text, so it is verified like the file."""
+        staged = tmp_path / "sources"
+        shutil.copytree(SOURCES, staged)
+        target = staged / "fns-snap-cola-fy2026.txt"
+        target.write_text(target.read_text(encoding="utf-8").replace("$744", "$745"),
+                          encoding="utf-8")
+        problems = verify_manifest(staged / "manifest.json")
+        assert len(problems) == 1 and "fns-snap-cola-fy2026.txt" in problems[0]
+
+    def test_a_pdf_without_a_text_rendering_is_refused(self, tmp_path):
+        staged = tmp_path / "sources"
+        shutil.copytree(SOURCES, staged)
+        manifest = json.loads((staged / "manifest.json").read_text(encoding="utf-8"))
+        for entry in manifest["sources"]:
+            entry.pop("text_file", None)
+        (staged / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+        assert any("pinned text rendering" in p
+                   for p in verify_manifest(staged / "manifest.json"))
+        with pytest.raises(CorpusError):
+            load_corpus(staged / "manifest.json")

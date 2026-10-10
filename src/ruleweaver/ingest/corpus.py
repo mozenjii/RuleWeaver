@@ -20,6 +20,7 @@ from pathlib import Path
 
 from .document import SourceDocument
 from .ecfr import parse_file
+from .plain import is_plain, parse_plain
 
 
 class CorpusError(Exception):
@@ -87,7 +88,44 @@ def verify_manifest(manifest_path: str | Path) -> list[str]:
             problems.append(
                 f"{entry['source_id']}: {entry['file']} hashes to {actual[:16]}… "
                 f"but the manifest records {expected[:16]}…")
+        if entry.get("text_file"):
+            problems.extend(_verify_text(manifest_path.parent, entry))
+        elif path.suffix.lower() == ".pdf":
+            problems.append(f"{entry['source_id']}: a PDF needs a pinned text rendering "
+                            "(text_file and text_sha256)")
     return problems
+
+
+def _verify_text(root: Path, entry: dict) -> list[str]:
+    """A PDF's text rendering is what quotes are checked against, so it is pinned too."""
+    path = root / entry["text_file"]
+    if not path.exists():
+        return [f"{entry['source_id']}: {entry['text_file']} is missing"]
+    expected = entry.get("text_sha256")
+    if not expected:
+        return [f"{entry['source_id']}: the manifest records no text_sha256"]
+    actual = sha256_of(path)
+    if actual != expected:
+        return [f"{entry['source_id']}: {entry['text_file']} hashes to {actual[:16]}… "
+                f"but the manifest records {expected[:16]}…"]
+    return []
+
+
+def _parse(root: Path, entry: dict) -> SourceDocument:
+    """A regulation is parsed into clauses; a memo or notice is read as one text."""
+    common = {"source_id": entry["source_id"], "citation": entry.get("citation"),
+              "title": entry.get("title"), "point_in_time": entry.get("point_in_time"),
+              "retrieved_at": entry.get("retrieved_at"), "sha256": entry.get("sha256")}
+    path = root / entry["file"]
+    if entry.get("text_file"):
+        return parse_plain((root / entry["text_file"]).read_bytes(), **common)
+    if is_plain(path):
+        if path.suffix.lower() == ".pdf":
+            raise CorpusError(f"{entry['source_id']}: a PDF is read through a pinned "
+                              "text rendering; the manifest names none")
+        return parse_plain(path.read_bytes(),
+                           html_markup=path.suffix.lower() in (".htm", ".html"), **common)
+    return parse_file(path, **common)
 
 
 def load_corpus(manifest_path: str | Path, *, verify: bool = True) -> Corpus:
@@ -115,15 +153,7 @@ def load_corpus(manifest_path: str | Path, *, verify: bool = True) -> Corpus:
 
     documents: dict[str, SourceDocument] = {}
     for entry in manifest.get("sources", []):
-        document = parse_file(
-            manifest_path.parent / entry["file"],
-            source_id=entry["source_id"],
-            citation=entry.get("citation"),
-            title=entry.get("title"),
-            point_in_time=entry.get("point_in_time"),
-            retrieved_at=entry.get("retrieved_at"),
-            sha256=entry.get("sha256"),
-        )
+        document = _parse(manifest_path.parent, entry)
         documents[entry["source_id"]] = document
         notes.extend(f"{entry['source_id']}: {n}" for n in document.notes)
 

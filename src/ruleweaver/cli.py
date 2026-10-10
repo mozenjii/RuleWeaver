@@ -398,9 +398,8 @@ def _service_engine(database: str | None):
 def _warn_empty_parameters(package: RulePackage) -> list[str]:
     """Say at startup which parameters have no values, and return their ids.
 
-    The shipped SNAP example leaves the published tables out, so served as it is, its
-    headline answers are unknown. Better said once at startup than discovered by a
-    customer reading nulls.
+    A package that leaves a published table out answers unknown for everything that
+    reads it. Better said once at startup than discovered by a customer reading nulls.
     """
     empty = sorted(p.id for p in package.parameters if not p.values)
     if empty:

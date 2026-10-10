@@ -153,7 +153,11 @@ def resolve_span(span, documents: dict[str, SourceDocument]) -> SpanResolution:
         return SpanResolution(False, f"no ingested source with id {span.source_id!r}")
 
     clause = None
-    if span.node_id:
+    if not document.clauses:
+        # An unstructured source (a memo, a notice) has nothing to address: the citation
+        # says which table and row to read, and the quote is checked against the whole text.
+        pass
+    elif span.node_id:
         clause = document.clause(span.node_id)
         if clause is None:
             return SpanResolution(

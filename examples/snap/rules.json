@@ -158,7 +158,137 @@
           "citation": "7 CFR 273.9(a)"
         }
       ],
-      "note": "External dated input published annually by HHS. Not computed here."
+      "note": "External dated input published annually by HHS. Not computed here.",
+      "values": [
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "15650",
+          "at": {
+            "household_size": "1",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "hhs-poverty-guidelines-2025",
+              "citation": "HHS, Annual Update of the HHS Poverty Guidelines, 90 FR 5917 (17 Jan 2025) — 2025 Poverty Guidelines for the 48 Contiguous States and the District of Columbia, household of 1",
+              "quote": "$15,650"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "21150",
+          "at": {
+            "household_size": "2",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "hhs-poverty-guidelines-2025",
+              "citation": "HHS, Annual Update of the HHS Poverty Guidelines, 90 FR 5917 (17 Jan 2025) — 2025 Poverty Guidelines for the 48 Contiguous States and the District of Columbia, household of 2",
+              "quote": "21,150"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "26650",
+          "at": {
+            "household_size": "3",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "hhs-poverty-guidelines-2025",
+              "citation": "HHS, Annual Update of the HHS Poverty Guidelines, 90 FR 5917 (17 Jan 2025) — 2025 Poverty Guidelines for the 48 Contiguous States and the District of Columbia, household of 3",
+              "quote": "26,650"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "32150",
+          "at": {
+            "household_size": "4",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "hhs-poverty-guidelines-2025",
+              "citation": "HHS, Annual Update of the HHS Poverty Guidelines, 90 FR 5917 (17 Jan 2025) — 2025 Poverty Guidelines for the 48 Contiguous States and the District of Columbia, household of 4",
+              "quote": "32,150"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "37650",
+          "at": {
+            "household_size": "5",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "hhs-poverty-guidelines-2025",
+              "citation": "HHS, Annual Update of the HHS Poverty Guidelines, 90 FR 5917 (17 Jan 2025) — 2025 Poverty Guidelines for the 48 Contiguous States and the District of Columbia, household of 5",
+              "quote": "37,650"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "43150",
+          "at": {
+            "household_size": "6",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "hhs-poverty-guidelines-2025",
+              "citation": "HHS, Annual Update of the HHS Poverty Guidelines, 90 FR 5917 (17 Jan 2025) — 2025 Poverty Guidelines for the 48 Contiguous States and the District of Columbia, household of 6",
+              "quote": "43,150"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "48650",
+          "at": {
+            "household_size": "7",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "hhs-poverty-guidelines-2025",
+              "citation": "HHS, Annual Update of the HHS Poverty Guidelines, 90 FR 5917 (17 Jan 2025) — 2025 Poverty Guidelines for the 48 Contiguous States and the District of Columbia, household of 7",
+              "quote": "48,650"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "54150",
+          "at": {
+            "household_size": "8",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "hhs-poverty-guidelines-2025",
+              "citation": "HHS, Annual Update of the HHS Poverty Guidelines, 90 FR 5917 (17 Jan 2025) — 2025 Poverty Guidelines for the 48 Contiguous States and the District of Columbia, household of 8",
+              "quote": "54,150"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "param.snap.gross_income_multiplier",
@@ -207,6 +337,104 @@
           "source_id": "7cfr-273.9",
           "citation": "7 CFR 273.9(d)(1)(i)"
         }
+      ],
+      "values": [
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "209",
+          "at": {
+            "household_size": "1",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Standard Deductions",
+              "quote": "48 States and D.C. $209 $209 $223 $261 $299"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "209",
+          "at": {
+            "household_size": "2",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Standard Deductions",
+              "quote": "48 States and D.C. $209 $209 $223 $261 $299"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "209",
+          "at": {
+            "household_size": "3",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Standard Deductions",
+              "quote": "48 States and D.C. $209 $209 $223 $261 $299"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "223",
+          "at": {
+            "household_size": "4",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Standard Deductions",
+              "quote": "48 States and D.C. $209 $209 $223 $261 $299"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "261",
+          "at": {
+            "household_size": "5",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Standard Deductions",
+              "quote": "48 States and D.C. $209 $209 $223 $261 $299"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "299",
+          "at": {
+            "household_size": "6",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Standard Deductions",
+              "quote": "48 States and D.C. $209 $209 $223 $261 $299"
+            }
+          ]
+        }
       ]
     },
     {
@@ -221,7 +449,25 @@
           "source_id": "7cfr-273.9",
           "citation": "7 CFR 273.9(d)(1)(iii)"
         }
-      ]
+      ],
+      "values": [
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "209",
+          "at": {
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Standard Deductions, household size 1-3",
+              "quote": "48 States and D.C. $209 $209 $223 $261 $299"
+            }
+          ]
+        }
+      ],
+      "note": "7 CFR 273.9(d)(1)(iii) sets the floor by CPI adjustment; FNS does not print it on its own line. The memo's $209 for household sizes 1-3 is that floor: the general formula (8.31% of the net income standard) gives $108 for one person and reproduces the memo's $223, $261 and $299 for sizes 4-6 exactly."
     },
     {
       "id": "param.snap.shelter_cap",
@@ -234,6 +480,23 @@
         {
           "source_id": "7cfr-273.9",
           "citation": "7 CFR 273.9(d)(6)(ii)"
+        }
+      ],
+      "values": [
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "744",
+          "at": {
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Maximum Excess Shelter Deductions",
+              "quote": "48 States and D.C. $744"
+            }
+          ]
         }
       ]
     },
@@ -286,7 +549,137 @@
           "citation": "7 CFR 273.10(e)(2)(ii)(A)"
         }
       ],
-      "note": "The Thrifty Food Plan maximum, published annually by FNS."
+      "note": "The Thrifty Food Plan maximum, published annually by FNS.",
+      "values": [
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "298",
+          "at": {
+            "household_size": "1",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Maximum SNAP Allotments for 48 States and D.C.",
+              "quote": "1 $298"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "546",
+          "at": {
+            "household_size": "2",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Maximum SNAP Allotments for 48 States and D.C.",
+              "quote": "2 $546"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "785",
+          "at": {
+            "household_size": "3",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Maximum SNAP Allotments for 48 States and D.C.",
+              "quote": "3 $785"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "994",
+          "at": {
+            "household_size": "4",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Maximum SNAP Allotments for 48 States and D.C.",
+              "quote": "4 $994"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "1183",
+          "at": {
+            "household_size": "5",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Maximum SNAP Allotments for 48 States and D.C.",
+              "quote": "5 $1,183"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "1421",
+          "at": {
+            "household_size": "6",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Maximum SNAP Allotments for 48 States and D.C.",
+              "quote": "6 $1,421"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "1571",
+          "at": {
+            "household_size": "7",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Maximum SNAP Allotments for 48 States and D.C.",
+              "quote": "7 $1,571"
+            }
+          ]
+        },
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "1789",
+          "at": {
+            "household_size": "8",
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Maximum SNAP Allotments for 48 States and D.C.",
+              "quote": "8 $1,789"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "param.snap.minimum_benefit",
@@ -301,7 +694,24 @@
           "citation": "7 CFR 273.10(e)(2)(ii)(C)"
         }
       ],
-      "note": "8 percent of the maximum allotment for a household of one, rounded."
+      "note": "8 percent of the maximum allotment for a household of one, rounded.",
+      "values": [
+        {
+          "effective_from": "2025-10-01",
+          "effective_to": "2026-10-01",
+          "value": "24",
+          "at": {
+            "jurisdiction": "48_dc"
+          },
+          "sources": [
+            {
+              "source_id": "fns-snap-cola-fy2026",
+              "citation": "USDA FNS, SNAP FY 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025 — Minimum SNAP Allotments, household size 1-2",
+              "quote": "1–2 $24"
+            }
+          ]
+        }
+      ]
     }
   ],
   "rules": [

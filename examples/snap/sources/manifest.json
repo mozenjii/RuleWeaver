@@ -1,9 +1,9 @@
 {
   "corpus_id": "snap-us-federal",
-  "description": "US SNAP federal regulations. Authoritative source snapshots for the RuleWeaver v0.1 golden fixture.",
+  "description": "US SNAP federal regulations and the dated figures they read. Authoritative source snapshots for the RuleWeaver golden fixture.",
   "rights": {
     "status": "public-domain",
-    "basis": "US government edicts doctrine \u2014 federal regulations are not subject to copyright.",
+    "basis": "US government works and edicts — federal regulations, Federal Register documents and FNS memoranda are not subject to copyright.",
     "redistribution": "permitted",
     "reviewed": "2026-08-17"
   },
@@ -43,7 +43,36 @@
       "retrieved_at": "2026-08-17",
       "sha256": "bb8c9f79b3e734d165b54485b4400b243443f1845ae318d122dfd86a3ff7da4e",
       "bytes": 53868
+    },
+    {
+      "source_id": "fns-snap-cola-fy2026",
+      "citation": "USDA FNS, SNAP – Fiscal Year 2026 Cost-of-Living Adjustments, memo of 13 Aug 2025",
+      "title": "Maximum allotments, income eligibility standards and deductions, 1 Oct 2025 to 30 Sep 2026",
+      "file": "fns-snap-cola-fy2026.pdf",
+      "text_file": "fns-snap-cola-fy2026.txt",
+      "text_sha256": "89e5ab8ce57f06eafdc9955d685b953668202657afd63251fb2552b7065e7b43",
+      "text_method": "pdftotext -layout (poppler 24.02.0)",
+      "effective": {
+        "from": "2025-10-01",
+        "to": "2026-09-30"
+      },
+      "retrieved_at": "2026-10-10",
+      "retrieved_from": "https://health.alaska.gov/media/4nunu3ob/fy2026-cola-memo.pdf",
+      "retrieval_note": "fns.usda.gov refused automated access; this is the same signed FNS memo as redistributed by the Alaska Department of Health. Check it against the copy published by FNS before relying on it.",
+      "sha256": "a70d254aca1b68ae36e8c925640868a62d8fb36849c877e8f338a89516217bf2",
+      "bytes": 212114
+    },
+    {
+      "source_id": "hhs-poverty-guidelines-2025",
+      "citation": "HHS, Annual Update of the HHS Poverty Guidelines, 90 FR 5917 (17 Jan 2025), FR Doc. 2025-01377",
+      "title": "2025 Poverty Guidelines",
+      "file": "hhs-poverty-guidelines-2025.htm",
+      "retrieved_at": "2026-10-10",
+      "retrieved_from": "https://www.govinfo.gov/content/pkg/FR-2025-01-17/html/2025-01377.htm",
+      "sha256": "4d1115993f60a3b3885f4dd23c06d2b724a7cb40d78a812017b94e094d9799ef",
+      "bytes": 11517
     }
   ],
-  "verification": "sha256sum 7cfr-271.2.xml 7cfr-273.9.xml 7cfr-273.10.xml and compare against the sha256 fields above."
+  "verification": "sha256sum each file and compare against its sha256 field; tests/test_snap_tables.py re-reads every value from these files.",
+  "quotes": "A quote in a parameter value is the row as printed in the text file, with runs of whitespace collapsed to one space."
 }

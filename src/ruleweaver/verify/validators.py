@@ -321,6 +321,8 @@ def _spans_resolve(pkg: RulePackage, report: Report, corpus) -> None:
             check(exc.sources, rule.id, exc.id)
     for param in pkg.parameters:
         check(param.sources, None, param.id)
+        for value in param.values:
+            check(value.sources, None, param.id)
     for variable in pkg.variables:
         check(variable.sources, None, variable.id)
     for ambiguity in pkg.ambiguities:

@@ -25,6 +25,7 @@ package it came from.
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -358,9 +359,6 @@ def _parameters_yaml(package: RulePackage,
                     suggestion="supply the published table, or drop the parameter"))
             continue
         path = parameter.id.removeprefix("param.").replace(".", "/")
-        lines = ["description: " + (parameter.note or parameter.id)]
-        if parameter.sources and parameter.sources[0].citation:
-            lines.append(f"reference: {parameter.sources[0].citation}")
 
         if parameter.dimensions:
             # A dimensioned parameter becomes nested nodes keyed by coordinate, which is
@@ -384,24 +382,54 @@ def _parameters_yaml(package: RulePackage,
                 grouped.setdefault(key, []).append(value)
             for key, values in sorted(grouped.items()):
                 node = "/".join(key)
-                body = ["values:"]
-                for value in sorted(values, key=lambda v: v.effective_from):
-                    rendered = value.value
-                    if isinstance(rendered, Decimal):
-                        rendered = f"{rendered:f}"
-                    body.append(f"  {value.effective_from}:")
-                    body.append(f"    value: {rendered}")
-                files[f"parameters/{path}/{node}.yaml"] = "\n".join(lines + body) + "\n"
+                files[f"parameters/{path}/{node}.yaml"] = \
+                    "\n".join(_header(parameter, values) + _values(parameter, values)) + "\n"
         else:
-            body = ["values:"]
-            for value in sorted(parameter.values, key=lambda v: v.effective_from):
-                rendered = value.value
-                if isinstance(rendered, Decimal):
-                    rendered = f"{rendered:f}"
-                body.append(f"  {value.effective_from}:")
-                body.append(f"    value: {rendered}")
-            files[f"parameters/{path}.yaml"] = "\n".join(lines + body) + "\n"
+            files[f"parameters/{path}.yaml"] = \
+                "\n".join(_header(parameter, parameter.values)
+                          + _values(parameter, parameter.values)) + "\n"
     return files
+
+
+def _scalar(text: str) -> str:
+    """A YAML double-quoted scalar. JSON's string syntax is a subset of it, so a note
+    with a colon or a quote in it cannot break the file."""
+    return json.dumps(text, ensure_ascii=False)
+
+
+def _header(parameter: Parameter, values: list) -> list[str]:
+    lines = ["description: " + _scalar(parameter.note or parameter.id)]
+    # The row's own publication when it cites one, else the parameter's legal basis.
+    cited = next((s.citation for v in values for s in v.sources if s.citation), None)
+    if cited is None and parameter.sources and parameter.sources[0].citation:
+        cited = parameter.sources[0].citation
+    if cited:
+        lines.append("reference: " + _scalar(cited))
+    return lines
+
+
+def _values(parameter: Parameter, values: list) -> list[str]:
+    """Dated values. A value that stops applying is closed with `value: null`, which is
+    OpenFisca's way of saying the parameter is undefined from that date: without it the
+    last published figure would apply for ever, where RuleWeaver answers unknown."""
+    body = ["values:"]
+    starts = {str(v.effective_from) for v in values}
+    entries: dict[str, str] = {}
+    for value in values:
+        rendered = value.value
+        if isinstance(rendered, Decimal):
+            rendered = f"{rendered:f}"
+        elif parameter.value_type in ("string", "date"):
+            rendered = _scalar(str(rendered))
+        elif isinstance(rendered, bool):
+            rendered = "true" if rendered else "false"
+        entries[str(value.effective_from)] = str(rendered)
+        if value.effective_to and str(value.effective_to) not in starts:
+            entries.setdefault(str(value.effective_to), "null")
+    for when in sorted(entries):
+        body.append(f"  {when}:")
+        body.append(f"    value: {entries[when]}")
+    return body
 
 
 def export(

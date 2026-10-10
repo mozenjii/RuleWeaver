@@ -320,3 +320,27 @@ class TestOpenFiscasOwnRunner:
         broken.write_text(text.replace("    net_monthly_income: 594.0000",
                                        "    net_monthly_income: 600"), encoding="utf-8")
         assert self.openfisca_test(root, broken).returncode != 0
+
+
+class TestTheShippedTables:
+    """The package as shipped, with the official FY2026 tables, run under OpenFisca."""
+
+    @pytest.fixture(scope="class")
+    def official(self, tmp_path_factory):
+        package = RulePackage.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+        result = export(package, require_approval=False)
+        system = load(result, tmp_path_factory.mktemp("official"))
+        return package, result, system, Evaluator(package, ParameterTable(package))
+
+    @pytest.mark.parametrize("name", sorted(HOUSEHOLDS))
+    def test_every_exported_variable_agrees(self, official, name):
+        comparison = run(official, copy.deepcopy(HOUSEHOLDS[name]))
+        assert comparison.ok, str(comparison)
+        assert not comparison.gaps
+
+    def test_a_value_ends_with_its_fiscal_year(self, official):
+        """Without a closing `null` the FY2026 figures would apply in OpenFisca for ever,
+        while the evaluator answers unknown from 1 October 2026."""
+        _, result, _, _ = official
+        shelter = result.files["parameters/snap/shelter_cap/48_dc.yaml"]
+        assert "2026-10-01:\n    value: null" in shelter

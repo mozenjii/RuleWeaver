@@ -23,9 +23,10 @@ needs_review_log = pytest.mark.skipif(
     reason="reading the review log needs the review extra",
 )
 
-# Externally published tables the regulation references but does not contain.
+# Constructed test tables. The shipped package carries the official FY2026 figures
+# (tests/test_snap_tables.py checks them against the publications); these are shaped to
+# make particular rules observable, and several deliberately differ from the real ones.
 # Keys are dimension values in alphabetical order of dimension name.
-# FY2026 figures for a household of three in the 48 states and DC.
 PARAMETER_OVERRIDES = {
     "param.snap.fpl_annual": {
         ("1", "48_dc"): Decimal("15650"),
@@ -106,15 +107,24 @@ def household(members: list[dict], size: int | None = None, shelter: str = "0",
 
 
 def with_tables(package: RulePackage, jurisdiction: str = "48_dc") -> RulePackage:
-    """The fixture with one jurisdiction's published tables written into the package.
+    """The fixture with the test tables above written into the package in place of the
+    shipped ones, for one jurisdiction.
 
-    What a deployed package looks like: the tables are part of the law as reviewed, not
-    something a caller supplies. One jurisdiction, because the `lowmax` rows exist only at
-    household size three and so are not a complete grid.
+    The shipped package carries the official FY2026 figures; these tests need the
+    constructed ones (a standard deduction below its minimum, a jurisdiction where the
+    zero floor binds) to make particular rules observable. Written into the package rather
+    than passed as overrides, because that is what a deployed package looks like. One
+    jurisdiction, because the `lowmax` rows exist only at household size three and so
+    are not a complete grid.
     """
     package = package.model_copy(deep=True)
     for parameter in package.parameters:
-        for key, value in PARAMETER_OVERRIDES.get(parameter.id, {}).items():
+        table = PARAMETER_OVERRIDES.get(parameter.id)
+        if not table:
+            continue
+        parameter.values = [v for v in parameter.values
+                            if v.at.get("jurisdiction", jurisdiction) != jurisdiction]
+        for key, value in table.items():
             at = dict(zip(sorted(parameter.dimensions), key, strict=True))
             if at.get("jurisdiction", jurisdiction) == jurisdiction:
                 parameter.values.append(
