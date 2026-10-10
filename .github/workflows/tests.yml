@@ -43,7 +43,7 @@ jobs:
         run: pytest -rs
 
       - name: Validate the golden corpus
-        run: ruleweaver validate examples/snap/rules.json
+        run: ruleweaver validate examples/snap/rules.json --sources examples/snap/sources/manifest.json
 
       - name: Check the fixture still evaluates
         run: ruleweaver evaluate examples/snap/rules.json examples/snap/scenarios/baseline.json
@@ -69,7 +69,7 @@ jobs:
         run: pytest -rs
 
       - name: Validate the golden corpus
-        run: ruleweaver validate examples/snap/rules.json
+        run: ruleweaver validate examples/snap/rules.json --sources examples/snap/sources/manifest.json
 
       - name: Check the fixture still evaluates
         run: ruleweaver evaluate examples/snap/rules.json examples/snap/scenarios/baseline.json
