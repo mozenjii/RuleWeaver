@@ -9,6 +9,10 @@ from __future__ import annotations
 import json
 
 import pytest
+
+pytest.importorskip("fastapi", reason="the reviewer application needs the review extra")
+pytest.importorskip("sqlalchemy", reason="the reviewer application needs the review extra")
+
 from fastapi.testclient import TestClient
 
 from conftest import FIXTURE

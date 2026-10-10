@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 from decimal import Decimal
 from pathlib import Path
@@ -12,6 +13,14 @@ from ruleweaver.ir import RulePackage
 from ruleweaver.runtime import Context, Evaluator, ParameterTable
 
 FIXTURE = Path(__file__).resolve().parents[1] / "examples" / "snap" / "rules.json"
+
+# The review log is a database, and SQLAlchemy arrives with the `review` extra. Tests that
+# drive a command through the gate need it. On a base install the gate refuses instead,
+# and tests/test_optional_extras.py pins that refusal.
+needs_review_log = pytest.mark.skipif(
+    importlib.util.find_spec("sqlalchemy") is None,
+    reason="reading the review log needs the review extra",
+)
 
 # Externally published tables the regulation references but does not contain.
 # Keys are dimension values in alphabetical order of dimension name.

@@ -8,6 +8,9 @@ the chain notices.
 from __future__ import annotations
 
 import pytest
+
+pytest.importorskip("sqlalchemy", reason="the review log needs the review extra")
+
 from sqlalchemy import text
 
 from ruleweaver.review import Decision, ReviewEvent, SeededError, Status

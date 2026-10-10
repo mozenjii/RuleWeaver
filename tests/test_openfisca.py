@@ -17,7 +17,7 @@ import json
 
 import pytest
 
-from conftest import FIXTURE
+from conftest import FIXTURE, needs_review_log
 from ruleweaver.adapters.openfisca import Lowerer, Unlowerable, export
 from ruleweaver.approval import current_hashes
 from ruleweaver.ir import RulePackage
@@ -202,6 +202,7 @@ class TestFixtureShape:
         assert effects <= {"substitute"}
 
 
+@needs_review_log
 class TestExportCommand:
     """The adapter as a user meets it."""
 

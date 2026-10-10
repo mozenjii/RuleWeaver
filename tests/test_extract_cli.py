@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from conftest import FIXTURE
+from conftest import FIXTURE, needs_review_log
 from ruleweaver.cli import main
 from ruleweaver.ingest import load_corpus
 from ruleweaver.ir import RulePackage
@@ -100,6 +100,7 @@ class TestCompiling:
         assert all(r["interpretation"]["status"] == "needs_review"
                    for r in candidate["rules"])
 
+    @needs_review_log
     def test_the_gate_refuses_a_fresh_candidate(self, replay, tmp_path, capsys):
         out_path = tmp_path / "candidate.json"
         run("--source", "7cfr-273.9", "--limit", "2", "--replay", replay,

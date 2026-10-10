@@ -11,6 +11,9 @@ from __future__ import annotations
 import time
 
 import pytest
+
+pytest.importorskip("fastapi", reason="refusing a request needs the review extra")
+
 from fastapi import HTTPException
 
 from ruleweaver.review import identity

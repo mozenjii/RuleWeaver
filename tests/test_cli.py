@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from conftest import FIXTURE
+from conftest import FIXTURE, needs_review_log
 from ruleweaver.cli import main
 from ruleweaver.ir import RulePackage
 
@@ -118,6 +118,7 @@ class TestApprovalGate:
         assert main(["evaluate", str(FIXTURE), str(SCENARIO)]) == 0
         assert "approval gate" not in capsys.readouterr().err
 
+    @needs_review_log
     def test_unreviewed_rules_refuse_to_execute(self, db, capsys):
         assert main(["evaluate", str(FIXTURE), str(SCENARIO),
                      "--require-approval", "--database", db]) == 1
@@ -125,6 +126,7 @@ class TestApprovalGate:
         assert "approval gate" in err
         assert "nothing was evaluated" in err
 
+    @needs_review_log
     def test_partial_evaluates_the_approved_subset(self, db, capsys):
         assert main(["evaluate", str(FIXTURE), str(SCENARIO),
                      "--require-approval", "--partial", "--database", db]) == 0
@@ -133,6 +135,7 @@ class TestApprovalGate:
         assert "var.household.size" in out
         assert "is_income_eligible" not in out
 
+    @needs_review_log
     def test_an_approved_package_evaluates_under_the_gate(self, db, capsys):
         self.approve_everything(db)
         assert main(["evaluate", str(FIXTURE), str(SCENARIO),
@@ -142,6 +145,7 @@ class TestApprovalGate:
         assert "True" in out
 
 
+@needs_review_log
 class TestApprovalsCommand:
     @pytest.fixture()
     def db(self, tmp_path):
