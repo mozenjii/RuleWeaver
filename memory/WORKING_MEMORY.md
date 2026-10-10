@@ -5,15 +5,17 @@ got. This is a scratch record, not documentation: the project's real state lives
 `docs/01_PROJECT_STATUS.md`, `research/REQUIREMENTS.md` and `CHANGELOG.md`. Delete this
 directory once it stops being useful.
 
-Last updated: 2026-10-10. Pulled baseline: `77184e6`; last code change: `9060e4f`.
+Last updated: 2026-10-11. Pulled baseline: `77184e6`; reconciled integration: `41b7e7c`.
 
 ## Standing instructions from the owner
 
 - Every commit is authored as **Mozenjii <mhbamdm@gmail.com>**, the only contributor.
   No co-author trailers, session links or tooling attribution in published text.
-- Develop only on `claude/project-continuation-8yt9bp`; local work and ordinary pushes
-  to that branch are authorised. Never reset, discard or force-push state.
-- **Do not** merge, open a pull request or cut a release yet ("Not yet").
+- The owner subsequently authorised reconciling both the continuation branch and
+  `mozenji/production-readiness-foundation` into `main`, then continuing on `main`
+  with ordinary pushes. This supersedes the branch-only/no-main-merge restriction.
+  Never reset, discard, delete a branch or force-push state.
+- No pull request, tag or release is authorised.
 - Make the code back every claim; do not drop a claim because the code cannot do it yet.
   Commercialising can wait. The goal is a first version that works and that people like.
 - Target market: the US and Europe.
@@ -22,11 +24,12 @@ Last updated: 2026-10-10. Pulled baseline: `77184e6`; last code change: `9060e4f
 
 - Python compiler that turns regulations into executable, source-linked rules
   (Apache-2.0). Golden corpus: 15 SNAP rules from 7 CFR 271.2, 273.9 and 273.10.
-- Tests: 554 pass with all extras (`.[dev,review,openfisca]`). On the base install, 403
-  pass and 16 skip. ruff and mypy are clean.
+- Pulled baseline: 554 tests. Reconciled main: **558 passed**, **92.14% coverage**
+  (`.[dev,review,openfisca]`); fresh base install: **403 passed, 16 skipped**.
+  Ruff, mypy (55 source files) and dependency consistency checks pass.
 - CI (`.github/workflows/tests.yml`): Python 3.11–3.13 matrix with every extra, a
   base-install job, and a package job that builds the wheel and Docker image. Green on
-  `9060e4f`, the last code change. Check the latest run before starting.
+  `9060e4f` historically; that is not evidence for reconciled main. Check the latest run.
 
 ## Done in this stretch, in order
 
@@ -37,8 +40,10 @@ Last updated: 2026-10-10. Pulled baseline: `77184e6`; last code change: `9060e4f
    replayable `record` on every answer.
 5. Ran the simulated market review (20 personas, three rounds) and stored it in
    `research/`. The reviews are **simulated**; treat them as hypotheses.
-6. Started working through `research/REQUIREMENTS.md`. Done: R-01, R-02, R-03, R-04,
-   R-08, R-09, R-12, R-14, R-15, R-28.
+6. Started working through `research/REQUIREMENTS.md`. Implemented portions: R-01, R-02, R-03, R-04,
+   R-08, R-09, R-12, R-14, R-15, R-28. R-01 is now **Partial**: seeded faults and
+   aggregate metrics work, but the combined requirement also needs pseudonymisation
+   (R-11). R-25 documentation is complete; counsel review remains outstanding.
    - R-04 (latest): the SNAP example carries the official FY2026 tables for the 48
      states and DC, each value citing its row in the FNS memo of 13 Aug 2025 or the HHS
      2025 poverty guidelines. Both documents are in `examples/snap/sources/` with
@@ -46,14 +51,14 @@ Last updated: 2026-10-10. Pulled baseline: `77184e6`; last code change: `9060e4f
 
 ## Next, in priority order
 
-- **R-37:** add the FY2027 tables (FNS memo of Aug 2026, in force from 1 Oct 2026).
+- **R-37:** retrieve and verify FY2027 tables in force from 1 Oct 2026; check the
+  official publication details rather than assuming a memo date.
   Until then the package answers unknown from 1 Oct 2026, which is already past.
 - **R-05:** keyed audit chain with the key held outside the database, plus checkpoint
   export and verify.
 - **R-06:** one identity per reviewer (OIDC or per-user keys); the author of a rule
   cannot approve it.
-- **R-25:** intended-purpose and non-reliance statement; rewrite ADR-021/022 as
-  positions, not conclusions.
+- **R-25:** documentation complete; commercial intended-use counsel review pending.
 - **R-36:** households of nine or more need a rule for FNS's rounded per-member
   increment ($459 net, $596 gross), not more table rows.
 - Then the P1 items: R-16 change-impact report, R-17 parity command, R-10 reasons for
@@ -83,7 +88,10 @@ it remains intact. No backup branch or directory move was needed. The requested
 branch fast-forwarded to `77184e6`. The configured remote still uses the old repository
 name, NICXON; it was not changed.
 
-The local project-memory directory named `D--Code-NICXON` contains six files:
+The relevant local locations are `D:/Code/RuleWeaver/CLAUDE.md`,
+`D:/Code/RuleWeaver/.claude/` and
+`C:/Users/MOHIB/.claude/projects/D--Code-NICXON/memory/`.
+The project-memory directory contains six files:
 `MEMORY.md`, `ruleweaver-state.md`, `commit-incrementally.md`,
 `no-tooling-config-in-repo.md`, `codex-app-not-cli.md` and
 `gstack-decision-slug-windows.md`. All were read. The repository's local instruction
@@ -139,6 +147,71 @@ $taskTemp = Join-Path (Get-Location) ('.pytest_cache/run-' + [guid]::NewGuid().T
 .venv/Scripts/python.exe -m pytest --basetemp $taskTemp -o addopts='' -q
 ```
 
-Next: documentation-only revised plan, ADR-032, intended-purpose revision R-25, and
-Built / Partial / Planned evidence. The handoff instructions are in
-`memory/LOCAL_SESSION_PROMPT.md`. Do not fix code as part of this pass.
+## Completed revised plan and branch reconciliation
+
+The original handoff in `LOCAL_SESSION_PROMPT.md` is historical. The owner explicitly
+superseded its branch-only rule by authorising both branches into main. The continuation
+was a descendant of main, so main fast-forwarded; a normal two-parent merge preserved
+all eight unique local commits. Both original branch references remain intact. No stash,
+reset, rebase, forced push, branch deletion, tag or release was used.
+
+Documentation-only commits first updated every numbered document (00–15), README,
+requirements and changelog. ADR-032 fixes the BUILD/FREEZE/CUT scope; ADR-021/022 are
+intended-purpose positions, not legal conclusions. Normative IR requirements remain;
+five spec/runtime contradictions are explicitly tracked as R-44. R-38–R-46 preserve
+missing pack, gating, authoring, testing, benchmark, provenance and review claims.
+Older locally deleted layout documentation is retained and rewritten to the actual tree.
+
+The authorised branch reconciliation then combined local cookie CSRF, validation guards
+and coverage enforcement with newer parameter review, editing, planted faults, service
+and OpenFisca changes. The obsolete edit prohibition was replaced by semantic validation
+of the corrected item in its package before recording. Parameter errors and global
+validation failures block approval. Four regression cases bring 554 to 558 tests.
+No new feature module, top-level application directory or dependency on the web stack
+was added to the core. pytest-cov is the only merged development dependency.
+
+Final local checks after the compatible-tool update: 558 passed in 23.58 seconds,
+92.14% coverage; fresh provider/web-free
+base environment 403 passed, 16 skipped in 6.92 seconds. Ruff and mypy pass on 55 source
+files; pip check reports no broken dependencies. Golden corpus validation checks pinned
+sources and passes with the existing RW3009 override warning. Baseline scenario allotment
+is 609 for its historical period. These are implementation checks, not current-law or
+independent policy certification. No container or remote deployment was launched here.
+
+Independent read-only review checked the integration and documentation. It found three
+proof/status errors (testgen path, IR schema evidence and R-01 pseudonymisation); these
+were corrected. Degraded local documentation-skill helper availability remains a tooling
+setup issue and was not silently repaired or published.
+
+Owner decisions still needed: whether to start England Universal Credit/April uprating;
+who supplies independent known-answer cases and qualified jurisdiction review; commercial
+counsel, employer/IP permission, entity/insurance and backup maintainer arrangements
+(R-32–R-35). Do not infer completion from the simulated reviews.
+
+Continue on main. Next implementation follows R-37 → R-05 → R-06 → R-36 → R-39,
+then report R-16, independent parity R-17 and content pack R-38 with the hardening work.
+The complete not-built/partial inventory is `docs/01_PROJECT_STATUS.md` and the single
+status tracker is `research/REQUIREMENTS.md`.
+
+## Dependency-tool verification
+
+The initial local dependency scan reported ten records for five unique advisories:
+one in pytest 8.4.2 and four in setuptools 65.5.0. These were local development/bootstrap
+tools; the scan found no advisory in the installed project runtime dependencies.
+Installed versions were preserved in an ignored pre-update record. Setuptools was upgraded to a fixed release. A pytest 9 trial exposed OpenFisca 45
+requiring pytest <9 and broke its nested runner, so pytest 8.4.2 was restored and the
+suite rerun. The remaining Unix temporary-root advisory is documented rather than
+reported as fixed. CI now creates a random private temporary root inherited by nested
+runners; Windows runs also use fresh repository-local paths. This mitigates the
+shared predictable-path exposure, not the installed version finding. Hatch remains
+the build backend; no setuptools dependency was added. Dependency scanning, pinning
+and signed supply-chain evidence remain a broader R-13 deliverable.
+
+Upstream temporary-directory issue: https://github.com/pytest-dev/pytest/issues/13669.
+The primary fix is pytest 9.0.3; removing the compatibility constraint requires a
+separate OpenFisca maintenance decision under the frozen adapter scope.
+
+Final dependency scan: two duplicate records for the one retained pytest advisory;
+setuptools findings are resolved. No installed production runtime advisory reported.
+The shared private-root CI step parses as YAML and Bash; remote CI must confirm the
+Linux matrix and container job after push.

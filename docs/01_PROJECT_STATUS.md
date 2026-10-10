@@ -34,7 +34,7 @@ fixture is not an independently reviewed benchmark or qualified legal interpreta
 | Universal deployed approval enforcement | R-39: service/default export gated; CLI `--require-approval` optional and direct evaluator ungated |
 | Administrator-resistant audit | R-05: keyed chain/checkpoints absent; current unkeyed log can be rewritten/rehashed by an administrator |
 | Distinct reviewer identity and separation | R-06: shared-secret session/proxy plumbing exists; per-person binding and author/approver separation absent |
-| Qualification, reviewer privacy and accessibility assurance | R-07/R-11/R-29 not built; aggregate metrics do not pseudonymise stored identities |
+| Qualification, reviewer privacy and accessibility assurance | R-07/R-11/R-29 not built; R-01 Partial because aggregate metrics do not pseudonymise stored identities |
 | Missing-fact reasons and integrator disposition | R-10 not built; unknown/trace exists |
 | Signed artifacts, SBOM, complete supply-chain controls | R-13 not built; software release workflow is not that evidence |
 | Structured HTML/PDF and UK point-in-time ingestion | R-18 Partial canonical text/pinned renderings only; R-19 not built |
@@ -49,6 +49,7 @@ fixture is not an independently reviewed benchmark or qualified legal interpreta
 | Contradiction/completeness, multi-axis time and documented semantic gaps | R-44 not built; period compatibility/prorating, bound validation and diagnostic severity differ from parts of the spec |
 | Full ambiguity/test/dependency/history review surface | R-45 Partial rule/table decisions and diagnostics; full workflow/dual encoding absent |
 | England Universal Credit and April uprating | R-46 not started; owner chooses whether to begin |
+| Deferred EU sources, duty register and paid-distribution readiness | R-20/R-24/R-30 not built; outside current implementation |
 
 R-25 documentation is complete: ADR-021/022 now state intended purpose/non-reliance,
 not legal classification or compliance dates. Counsel review remains required before
