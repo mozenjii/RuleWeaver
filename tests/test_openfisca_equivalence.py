@@ -280,3 +280,60 @@ class TestSynthetic:
         shares = [r for r in comparison.rows if r.variable == "var.member.share"]
         assert len(shares) == 3
         assert all(r.verdict == "match" and r.expected == 100 for r in shares), str(comparison)
+
+
+class TestOpenFiscasOwnRunner:
+    """The households above, written as OpenFisca YAML tests and run by `openfisca test`.
+
+    That is the evidence a user of the exported package can rerun without RuleWeaver.
+    """
+
+    @pytest.fixture(scope="class")
+    def written(self, snap, tmp_path_factory):
+        from ruleweaver.adapters.openfisca.yaml_tests import test_file
+
+        package, result, _, evaluator = snap
+        root = tmp_path_factory.mktemp("country")
+        result.write(root / "snapcountry")
+        cases = dict(HOUSEHOLDS)
+        missing = household([member(34, "1500"), member(8)])
+        del missing.members[0]["var.member.earned_income"]
+        cases["a member's income is missing"] = missing
+        tests = root / "snap.yaml"
+        tests.write_text(test_file(package, result, evaluator, cases), encoding="utf-8")
+        return root, tests
+
+    def openfisca_test(self, root, tests):
+        import os
+        import subprocess
+        import sys
+        from pathlib import Path
+
+        runner = Path(sys.executable).parent / "openfisca"
+        return subprocess.run(
+            [str(runner), "test", str(tests), "--country-package", "snapcountry"],
+            capture_output=True, text=True, check=False,
+            env={**os.environ, "PYTHONPATH": str(root)})
+
+    def test_the_exported_tests_pass_under_openfisca(self, written):
+        run_ = self.openfisca_test(*written)
+        assert run_.returncode == 0, run_.stdout + run_.stderr
+
+    def test_an_unknown_is_left_out_rather_than_asserted(self, written):
+        """OpenFisca says this household is eligible; the evaluator cannot decide. A test
+        expecting True would pass and enshrine the gap."""
+        _, tests = written
+        text = tests.read_text(encoding="utf-8")
+        block = text[text.index("a member's income is missing"):]
+        assert "left out" in block
+        assert "is_income_eligible" not in block
+
+    def test_a_wrong_expectation_fails_under_openfisca(self, written, tmp_path):
+        """A test file OpenFisca cannot fail is not evidence."""
+        root, tests = written
+        broken = tmp_path / "broken.yaml"
+        text = tests.read_text(encoding="utf-8")
+        assert "    net_monthly_income: 594.0000" in text
+        broken.write_text(text.replace("    net_monthly_income: 594.0000",
+                                       "    net_monthly_income: 600"), encoding="utf-8")
+        assert self.openfisca_test(root, broken).returncode != 0
