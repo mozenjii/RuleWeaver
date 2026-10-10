@@ -300,69 +300,87 @@ rules as they stood. For a system whose promise is audit, that is disqualifying.
 
 ---
 
-## ADR-021 — Review is adversarial by design
+## ADR-021 — Review produces evidence, not a compliance conclusion
 
-**Status:** Accepted
-**Date:** 2026-08-17
+**Status:** Accepted position; revised for R-25 on 2026-10-10.
+**Original decision date:** 2026-08-17. The prior compliance-evidence claim is withdrawn.
 
-### Decision
+### Intended purpose
 
-The review gate must include seeded-error injection with a monitored catch rate, blind
-dual-encoding on a sample of clauses, and timing telemetry. A review UI that presents a
-proposed rule and an approve button is not an acceptable implementation of ADR-004.
+Review helps an operator inspect an executable interpretation against the exact source
+and published figures. A recorded approval means that the deployment's log records a
+person's decision against that content hash. It does not establish legal correctness,
+reviewer qualification, independent identity or regulatory compliance.
 
-### Why
+### Decision and implementation boundary
 
-Automation bias is measured and severe. Dratsch et al. (*Radiology* 2023, DOI
-10.1148/radiol.222176) found that when shown incorrect AI suggestions, correct ratings fell
-from 82.3% to **45.5% among very experienced reviewers** (79.7%→19.8% for inexperienced).
-Expertise attenuates the effect but does not prevent it.
+- **Built:** disclosed fault planting and aggregate catch-rate metrics in
+  `src/ruleweaver/review/seeding.py` and `src/ruleweaver/review/adversarial.py`, covered
+  by `tests/test_seeding.py`. Seed decisions cannot approve the real rule. A measured
+  catch rate is evidence about the planted sample, not assurance about all interpretations.
+- **Partial:** signed sessions/trusted proxies and a hash-chained decision log exist
+  (`tests/test_identity.py`, `tests/test_review_store.py`). The shared signing secret
+  does not bind one identity to one reviewer (R-06). The unkeyed chain can be recomputed
+  by a database administrator (R-05).
+- **Planned:** author/approver separation (R-06), qualification (R-07), pseudonymous
+  identities with a deletable map (R-11), accessible review (R-29), and complete test/
+  ambiguity review with blind dual-encoding where required (R-45).
 
-ADR-004 makes human approval the load-bearing safety control. Unstructured approval
-produces rubber-stamping, so the gate needs evidence it is working, not just a workflow
-state.
+Human approval and deterministic checks are complementary controls. Neither a fast
+approval nor a high model-confidence score establishes that a rule is right. Operators
+must retain independent policy-intent cases and decide what expertise their content needs.
 
-### Secondary benefit
+### Non-reliance and review trigger
 
-EU AI Act Art 14 requires automation-bias mitigation for high-risk systems. Benefits
-eligibility is high-risk under Annex III 5(a). This design doubles as compliance evidence.
+RuleWeaver supplies technical evidence, not official determinations or legal advice.
+No review metric or approval record is offered as proof of compliance with any statute,
+regulatory article or certification. Obligations depend on actual intended purpose,
+operator, jurisdiction and deployment. **Not legal advice; needs counsel review before
+any commercial use.** Revisit this position when a concrete deployment, qualified
+reviewer process and counsel-reviewed governance model exist.
 
 ---
 
-## ADR-022 — Keep the LLM out of the runtime path for legal, not only technical, reasons
+## ADR-022 — Deterministic runtime and separate optional authoring
 
-**Status:** Accepted
-**Date:** 2026-08-17
-**Reinforces:** ADR-003
+**Status:** Accepted position; revised for R-25 on 2026-10-10.
+**Original decision date:** 2026-08-17. **Reinforces:** ADR-003.
+The former legal-classification conclusion and unverified legislative timetable are
+withdrawn; this revision makes no claim about exemption or statutory dates.
 
-### Decision
+### Intended purpose
 
-ADR-003 is upgraded from an engineering preference to a **legal position**. No change to
-the architecture; a change to how firmly it is held.
+RuleWeaver is a self-hosted compiler and verifier for computable benefit and tax rules.
+It preserves source evidence and supports human-controlled interpretations. Its target
+outputs are change-impact and independent known-answer verification evidence for an
+operator's own system, not an autonomous benefit or tax authority.
 
-### Why
+### Decision and implementation boundary
 
-- EU AI Act **Annex III 5(a)** classifies systems used to evaluate eligibility for
-  essential public assistance benefits as high-risk, triggering Arts 9-15, 17, 43, 49, 72,
-  73 plus deployer duties under Arts 26-27.
-- Because RuleWeaver's runtime decider is a deterministic, human-authored rule engine, it
-  is arguably not an "AI system" under Art 3(1) — no inference, no adaptiveness. The LLM
-  sits pre-deployment as an authoring aid. **This distinction is the entire legal position.**
-- **SCHUFA (CJEU C-634/21, 7 Dec 2023)** holds that an automated output is itself an
-  Art 22 "decision" where it plays a determining role downstream, even when a different
-  party formally decides. Nominal human sign-off does not defeat Art 22 — which is why
-  ADR-021's adversarial review matters and a disclaimer does not.
+The runtime executes supported typed expressions deterministically. Optional model
+providers may propose interpretations before review; they are absent from the runtime
+path and are optional packaging dependencies (`pyproject.toml`,
+`tests/test_optional_extras.py`, `src/ruleweaver/runtime/evaluator.py`).
+This separation is an engineering and governance position, not a legal classification.
 
-### Timing
+Only approved rules and parameter tables should enter deployed execution. That is
+**Partial** today: the service gates every request and export gates by default; CLI
+`evaluate` needs `--require-approval`, and the low-level evaluator does not consult an
+approval log (`src/ruleweaver/approval.py`, `tests/test_parameter_gate.py`,
+`tests/test_service.py`). R-39 covers the remaining deployed-path enforcement.
 
-The Digital Omnibus (in force 27 Jul 2026) deferred Annex III high-risk obligations from
-2 Aug 2026 to **2 Dec 2027**. Art 50 transparency applies from 2 Aug 2026. This is a real
-build window, not an exemption.
+### Non-reliance
 
-### Caveat
+Outputs implement a bounded reviewed interpretation. They are not law, legal advice,
+an official determination, an assurance of current source completeness or permission
+to automate consequential decisions. Approval and disclaimers do not replace the
+operator's independent validation and accountability. Unknown values must remain
+unresolved and be handled by the operator, not converted into denials or approvals.
 
-This is architectural analysis, not legal advice. Obtain counsel before any deployment
-claim rests on the Art 3(1) argument.
+No inference about regulatory classification follows solely from deterministic
+execution or optional authoring. **Not legal advice; needs counsel review before any
+commercial use.** Counsel must review the actual purpose, data flows and downstream use.
+No compliance deadline or exemption is asserted here.
 
 ---
 
@@ -410,8 +428,11 @@ passes review" — was true of the documentation and false of the code. The eval
 whatever package it was handed. Review recorded decisions; nothing consulted them.
 
 `src/ruleweaver/approval.py` is the enforcement. `ruleweaver evaluate --require-approval`
-reads the log and refuses; the OpenFisca adapter refuses by default, with no flag that
-makes refusal the exception.
+reads the log and refuses; the OpenFisca adapter refuses by default. **2026-10-10
+clarification:** draft export can bypass approval with `--no-approval`; CLI evaluation
+without `--require-approval` and direct evaluator calls are also ungated. The service
+always applies `approved_subset`. R-39 tracks separation and enforcement of deployed
+paths. Parameter tables now pass the same gate (`tests/test_parameter_gate.py`).
 
 ### Excluding a rule leaves its target unknown, not false
 
@@ -529,10 +550,10 @@ nobody reads.
 
 ### Why an audit log with a forgeable actor is worse than none
 
-It looks like evidence. ADR-022's position — that the deterministic runtime is defensible
-under GDPR Art. 22 because an accountable human approved each rule — depends entirely on
-being able to name that human. A log whose reviewer field the client controls cannot
-support the claim it is being offered for.
+A client-controlled actor field cannot identify who made a review decision. This is
+an evidence-integrity concern, not a legal defence. ADR-021/022 were revised on
+2026-10-10 to withdraw compliance conclusions. Distinct reviewer identity, separation
+of duties and pseudonymous records remain unbuilt (R-06, R-11).
 
 ### Trusted-proxy support is deliberate
 
@@ -642,14 +663,88 @@ case proves it — but the adapter does not prevent it.
 
 ---
 
+## ADR-032 — Build the self-hosted compiler and verification deliverable first
+
+**Status:** Accepted owner's plan (2026-10-10).
+**Supersedes:** active expansion plans in ADR-006/009/010/011/019 and the previous
+sales-deadline roadmap. Historical design references remain; no code is removed.
+
+### Context
+
+The three simulated review rounds in `research/simulated-reviews/` raised useful
+objections, but consulted no real customer, reviewer or counsel. Their preferences,
+prices and deadlines are hypotheses, not evidence of demand. Several earlier product
+claims outran the code. The owner chooses a good first version before commercial urgency.
+
+### Decision
+
+Build a compiler and verifier for benefit and tax rules, linking executable
+interpretations and published figures to source evidence. Humans approve rules and
+parameter tables; deterministic software validates and runs them. Model authoring is
+optional, separate and frozen for new investment.
+
+The valued deliverable is **change impact plus independent verification**: effects of
+legislative change or annual uprating on rules, tests and results, paired with parity
+against the operator's own known-answer cases. Native package diff/impact is **Partial**
+(R-16); independent parity and a versioned hashed content-pack artifact are **Planned**
+(R-17, R-38). Adapter-versus-evaluator agreement cannot substitute for an independent oracle.
+
+Deployment is self-hosted. The intended support practice gives builders/supporters no
+personal-data access; self-hosting alone does not enforce that. The zero-access support
+protocol remains **Planned** (R-31). The product is not a hosted SaaS or an autonomous
+benefit/tax authority.
+
+US SNAP federal rules and the official FY2026 tables for the 48 states/DC remain the
+reference demo (`examples/snap/rules.json`, `tests/test_snap_tables.py`). FY2027 tables,
+large-household increments and current-law coverage are not built (R-37, R-36, R-22).
+England Universal Credit core plus the April uprating is the leading next-content
+candidate, **Planned** (R-46), subject to the owner's decision, not started work.
+
+### Component stance
+
+- **BUILD:** verified sources (eCFR plus memos/notices; structured HTML/PDF R-18,
+  legislation.gov.uk R-19), typed IR, deterministic evaluator/verifier, approval of
+  rules and tables, review app, change report R-16, parity R-17, content pack R-38.
+- **HARDEN:** keyed audit/checkpoints R-05, per-reviewer identity/separation R-06,
+  qualification R-07, unknown reasons/disposition R-10, pseudonyms R-11, supply-chain
+  evidence R-13, accessibility R-29, universal deployed gate R-39.
+- **FREEZE:** calculation service for self-hosted/synthetic use, OpenFisca export
+  (maintain only, dependency licence note R-28), optional extraction. Preserve working
+  tests; frozen modules receive correctness/security maintenance, not feature expansion.
+- **CUT from active roadmap:** Catala, LegalRuleML, PROV export, Akoma Ntoso, OCR,
+  plugin SDK and pre-user hosted multi-tenant SaaS. SOC 2, ISO 27001 and FedRAMP work
+  wait for an actual hosted offering and its demonstrated requirements.
+
+### Consequences and acceptance evidence
+
+Requirement status lives only in `research/REQUIREMENTS.md`. Architecture and product
+pages label components Built / Partial / Planned with paths/tests or requirement IDs.
+Complete P0 content and gate hardening before polishing the report/parity/pack deliverable.
+A software wheel, container or hash field is not a content-pack release. A review log
+is not a qualified sign-off. A green synthetic suite is not policy authority or a market.
+
+R-25 completes the documentation posture in ADR-021/022; counsel review before commercial
+use remains mandatory. This ADR creates no release, tag, PR, hosted deployment or paid work.
+
+### What would change the decision
+
+Reconsider scope only with the owner's explicit decision supported by actual user needs,
+independent parity evidence, jurisdiction-specific qualified review and deployment/privacy
+requirements. Do not infer market validation from further simulated agreement. Starting
+UC, expanding beyond this domain or reopening frozen components needs that decision.
+
+---
+
 ## Pending ADRs
 
-These should be decided with examples/tests, not prematurely:
+- Money currency and multiple jurisdictions (R-21).
+- Multi-axis temporal semantics and validator/spec contradictions (R-44). ADR-020's
+  multi-axis aspiration is not built: current rules/values have effective intervals.
+- Content-pack release contract and durable provenance (R-38, R-43).
+- Deployed versus draft execution boundary (R-39).
+- Human-required predicates if a concrete computable-policy case requires them;
+  subjective adjudication remains outside the current scope.
 
-- entity/group aggregation semantics;
-- exact exception/priority model;
-- period/periodicity algebra;
-- rounding rules;
-- human-required predicate semantics;
-- canonical plugin packaging (license choices settled by ADR-023);
-- canonical plugin packaging.
+Aggregation, explicit rounding and lowest-numbered exception priority are already
+specified and implemented in the supported subset. Do not reopen them as unresolved
+foundations. Cut adapter/plugin plans do not belong in this pending queue.
