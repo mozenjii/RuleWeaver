@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from ruleweaver.ir import RulePackage
+from ruleweaver.ir.rules import ParameterValue
 from ruleweaver.runtime import Context, Evaluator, ParameterTable
 
 FIXTURE = Path(__file__).resolve().parents[1] / "examples" / "snap" / "rules.json"
@@ -102,3 +103,20 @@ def household(members: list[dict], size: int | None = None, shelter: str = "0",
         },
         members=members,
     )
+
+
+def with_tables(package: RulePackage, jurisdiction: str = "48_dc") -> RulePackage:
+    """The fixture with one jurisdiction's published tables written into the package.
+
+    What a deployed package looks like: the tables are part of the law as reviewed, not
+    something a caller supplies. One jurisdiction, because the `lowmax` rows exist only at
+    household size three and so are not a complete grid.
+    """
+    package = package.model_copy(deep=True)
+    for parameter in package.parameters:
+        for key, value in PARAMETER_OVERRIDES.get(parameter.id, {}).items():
+            at = dict(zip(sorted(parameter.dimensions), key, strict=True))
+            if at.get("jurisdiction", jurisdiction) == jurisdiction:
+                parameter.values.append(
+                    ParameterValue(effective_from="2025-10-01", value=value, at=at))
+    return package

@@ -373,6 +373,77 @@ def cmd_review(args) -> int:
     return 0
 
 
+def _service_engine(database: str | None):
+    """The service's database, or None after saying why it cannot be opened."""
+    try:
+        from .review.store import build_engine
+        from .service.keys import KeyStore
+    except ImportError as exc:
+        print(f"the service extra is not installed: {exc}\n"
+              f'  pip install "ruleweaver[service]"', file=sys.stderr)
+        return None
+    try:
+        engine = build_engine(database)
+        KeyStore(engine)
+    except Exception as exc:
+        print(f"cannot open the service database: {exc.__class__.__name__}: {exc}"
+              .splitlines()[0], file=sys.stderr)
+        return None
+    return engine
+
+
+def cmd_serve(args) -> int:
+    """Serve approved rules as an HTTP calculation API."""
+    engine = _service_engine(args.database)
+    if engine is None:
+        return 1
+    import uvicorn
+
+    from .service import create_api
+
+    packages: dict[str, RulePackage] = {}
+    for path in args.packages:
+        package = _load_or_exit(path, verify=True)
+        if package.package_id in packages:
+            print(f"two packages share the id {package.package_id}", file=sys.stderr)
+            return 1
+        packages[package.package_id] = package
+
+    print(f"serving {len(packages)} package(s): {', '.join(sorted(packages))}")
+    print(f"database: {engine.url.render_as_string(hide_password=True)}")
+    print(f"http://{args.host}:{args.port}/docs\n")
+    uvicorn.run(create_api(packages, engine), host=args.host, port=args.port,
+                log_level="warning")
+    return 0
+
+
+def cmd_api_key(args) -> int:
+    """Issue, list and revoke the API keys customers authenticate with."""
+    engine = _service_engine(args.database)
+    if engine is None:
+        return 1
+    from .service import KeyStore
+
+    keys = KeyStore(engine)
+    if args.action == "create":
+        record, plaintext = keys.create(args.organisation)
+        # Only the key reaches stdout, so it can be captured; it is shown once.
+        print(f"key {record.id} for {record.organisation} — store it now, it is not "
+              "shown again", file=sys.stderr)
+        print(plaintext)
+        return 0
+    if args.action == "list":
+        for key in keys.list():
+            state = f"revoked {key.revoked_at:%Y-%m-%d}" if key.revoked_at else "active"
+            print(f"{key.id}  {key.hint}…  {key.organisation:30} {state}")
+        return 0
+    if keys.revoke(args.key_id):
+        print(f"revoked {args.key_id}")
+        return 0
+    print(f"no active key {args.key_id}", file=sys.stderr)
+    return 1
+
+
 def cmd_token(args) -> int:
     """Mint a reviewer session token.
 
@@ -501,6 +572,24 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--salt", default="", help="rotate per review campaign")
     p.add_argument("--no-verify", action="store_true")
     p.set_defaults(func=cmd_review)
+
+    p = sub.add_parser("serve", help="serve approved rules as an HTTP calculation API")
+    p.add_argument("packages", nargs="+", help="rule package(s) to serve")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8080)
+    p.add_argument("--database", default=None,
+                   help="approvals, keys and usage (default: RULEWEAVER_DATABASE_URL)")
+    p.set_defaults(func=cmd_serve)
+
+    p = sub.add_parser("api-key", help="manage API keys for the calculation service")
+    p.add_argument("--database", default=None)
+    actions = p.add_subparsers(dest="action", required=True)
+    create = actions.add_parser("create", help="issue a key for an organisation")
+    create.add_argument("organisation")
+    actions.add_parser("list", help="list keys, without the keys themselves")
+    revoke = actions.add_parser("revoke", help="revoke a key by id")
+    revoke.add_argument("key_id")
+    p.set_defaults(func=cmd_api_key)
 
     p = sub.add_parser("token", help="mint a reviewer session token")
     p.add_argument("reviewer", help="the identity to record against every decision")

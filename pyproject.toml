@@ -32,6 +32,8 @@ review = [
     "uvicorn>=0.32",
     "python-multipart>=0.0.9",
 ]
+# The calculation service: the same stack as the reviewer application.
+service = ["ruleweaver[review]"]
 # The PostgreSQL driver, for a review deployment whose audit log outlives one container.
 postgres = ["psycopg[binary]>=3.1"]
 

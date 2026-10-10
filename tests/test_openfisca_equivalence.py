@@ -26,31 +26,14 @@ import pytest
 
 pytest.importorskip("openfisca_core", reason="the equivalence harness needs OpenFisca")
 
-from conftest import FIXTURE, PARAMETER_OVERRIDES, household, member
+from conftest import FIXTURE, household, member, with_tables
 from ruleweaver.adapters.openfisca import export
 from ruleweaver.adapters.openfisca.equivalence import compare, load
 from ruleweaver.ir import RulePackage
-from ruleweaver.ir.rules import ParameterValue
 from ruleweaver.runtime import Context, Evaluator, ParameterTable
 
 GROSS = "var.household.meets_gross_income_test"
 ELIGIBLE = "var.household.is_income_eligible"
-
-
-def with_tables(package: RulePackage, jurisdiction: str = "48_dc") -> RulePackage:
-    """The fixture with one jurisdiction's published tables written into the package.
-
-    The evaluator reads them from the same place the export does, so a difference in the
-    comparison is a difference between runtimes, never between two copies of a table.
-    """
-    package = package.model_copy(deep=True)
-    for parameter in package.parameters:
-        for key, value in PARAMETER_OVERRIDES.get(parameter.id, {}).items():
-            at = dict(zip(sorted(parameter.dimensions), key, strict=True))
-            if at.get("jurisdiction", jurisdiction) == jurisdiction:
-                parameter.values.append(
-                    ParameterValue(effective_from="2025-10-01", value=value, at=at))
-    return package
 
 
 @pytest.fixture(scope="module")
