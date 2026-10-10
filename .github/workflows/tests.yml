@@ -40,7 +40,7 @@ jobs:
       # rules are protected; the mutation score is, so it is a build gate rather than a
       # report nobody reads.
       - name: Run tests
-        run: pytest -rs
+        run: pytest -rs --cov=ruleweaver --cov-report=term-missing --cov-fail-under=80
 
       - name: Validate the golden corpus
         run: ruleweaver validate examples/snap/rules.json --sources examples/snap/sources/manifest.json

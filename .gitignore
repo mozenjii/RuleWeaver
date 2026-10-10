@@ -5,6 +5,7 @@ CLAUDE.md
 AGENTS.md
 .claude/
 .agents/
+.codex/
 .venv/
 
 # ─── gstack (machine-generated; never commit) ────────────────────────
@@ -46,6 +47,7 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.coverage*
 .ruff_cache/
 .mypy_cache/
 

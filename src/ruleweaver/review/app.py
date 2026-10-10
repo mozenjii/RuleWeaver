@@ -18,6 +18,10 @@ clock when the rule renders and submits the delta.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import os
+import secrets
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -29,15 +33,35 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 
 from ..approval import rule_digest, source_digest
-from ..ir.rules import Rule, RulePackage
+from ..ir.rules import Parameter, Rule, RulePackage
 from ..verify import validate
 from .adversarial import AdversarialQueue
 from .decisions import Decision, ReviewEvent, Status
-from .identity import resolver_from_env
+from .identity import ENV_SECRET, SESSION_COOKIE, resolver_from_env
 from .seeding import pending_seed, plant_seeds
 from .store import ReviewStore
 
 TEMPLATES = Path(__file__).parent / "templates"
+
+
+def _csrf_token(secret: bytes, reviewer: str, rule_id: str) -> str:
+    payload = f"{reviewer}\0{rule_id}".encode()
+    return hmac.new(secret, payload, hashlib.sha256).hexdigest()
+
+
+def _requires_csrf(request: Request) -> bool:
+    authorization = request.headers.get("Authorization", "")
+    return SESSION_COOKIE in request.cookies and not authorization.lower().startswith("bearer ")
+
+
+def _rule_has_errors(report, rule_id: str) -> bool:
+    for diagnostic in report.errors:
+        affected = diagnostic.details.get("affects", [])
+        if rule_id in (diagnostic.rule_id, diagnostic.object_id) or rule_id in affected:
+            return True
+        if diagnostic.rule_id is None and not affected:
+            return True
+    return False
 
 
 def _rule(package: RulePackage, rule_id: str):
@@ -95,6 +119,7 @@ def create_app(
     store: ReviewStore,
     *,
     reviewer_resolver: Callable[[Request], str] | None = None,
+    csrf_secret: str | None = None,
     seed_rate: float = 0.0,
     salt: str = "",
 ) -> FastAPI:
@@ -124,6 +149,9 @@ def create_app(
     # identity the client chose is worse than refusing to start: it produces a
     # log that looks like evidence.
     resolve_reviewer = reviewer_resolver or resolver_from_env()
+    configured_csrf_secret = csrf_secret or os.environ.get(ENV_SECRET)
+    csrf_key = (configured_csrf_secret.encode() if configured_csrf_secret
+                else secrets.token_bytes(32))
 
     def status_of_with(log, rule_id: str) -> Status:
         return log.status(
@@ -201,7 +229,7 @@ def create_app(
 
     @app.get("/rule/{rule_id}", response_class=HTMLResponse)
     def detail(request: Request, rule_id: str):
-        resolve_reviewer(request)
+        reviewer = resolve_reviewer(request)
         _rule(package, rule_id)
         log = store.load_log()
         rule, _ = shown(rule_id, log)
@@ -216,6 +244,7 @@ def create_app(
                                 if rule_id in (d.rule_id, d.object_id)],
                 "ambiguities": [a for a in package.ambiguities if rule_id in a.affects],
                 "decisions": list(Decision),
+                "csrf_token": _csrf_token(csrf_key, reviewer, rule_id),
             },
         )
 
@@ -227,16 +256,37 @@ def create_app(
         note: str = Form(""),
         duration_seconds: float = Form(0.0),
         edited_to: str = Form(""),
+        csrf_token: str = Form(""),
     ):
         reviewer = resolve_reviewer(request)
+        if _requires_csrf(request):
+            expected = _csrf_token(csrf_key, reviewer, rule_id)
+            if not hmac.compare_digest(csrf_token, expected):
+                raise HTTPException(403, "the decision form is missing a valid CSRF token")
         try:
             chosen = Decision(decision)
         except ValueError as exc:
             raise HTTPException(400, f"unknown decision: {decision}") from exc
 
+        if chosen is Decision.APPROVE and _rule_has_errors(report, rule_id):
+            raise HTTPException(409, "this rule has unresolved validation errors and cannot "
+                                "be approved")
+
         correction = None
         if chosen is Decision.EDIT:
             correction = _correction(edited_to, rule_id)
+            if package.parameter(rule_id) is not None:
+                corrected_package = package.model_copy(update={
+                    "parameters": [Parameter.model_validate(correction) if p.id == rule_id
+                                   else p for p in package.parameters],
+                })
+            else:
+                corrected_package = package.model_copy(update={
+                    "rules": [Rule.model_validate(correction) if r.id == rule_id
+                              else r for r in package.rules],
+                })
+            if _rule_has_errors(validate(corrected_package), rule_id):
+                raise HTTPException(409, "the corrected item has unresolved validation errors")
 
         displayed, seeded = shown(rule_id, store.load_log())
 

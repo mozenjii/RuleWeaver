@@ -1,7 +1,7 @@
 """Rules, exceptions, parameters and the rule package.
 
-Nothing here imports a model provider or a target runtime, per docs/13_REPO_STRUCTURE.md.
-The IR is the public contract; adapters lower from it and never redefine it.
+Nothing here imports a model provider or a target runtime. The IR is the public contract;
+adapters lower from it and never redefine it, as specified in docs/03_ARCHITECTURE.md.
 """
 
 from __future__ import annotations

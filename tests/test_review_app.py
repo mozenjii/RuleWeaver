@@ -7,6 +7,7 @@ cannot be recorded without a reason, and an approval expires when its source mov
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 
@@ -19,6 +20,7 @@ from conftest import FIXTURE
 from ruleweaver.ir import RulePackage
 from ruleweaver.review import Decision, Status
 from ruleweaver.review.app import create_app
+from ruleweaver.review.identity import SignedTokenResolver, mint_token
 from ruleweaver.review.store import ReviewStore, build_engine
 
 RULE = "rule.snap.gross_income_test"
@@ -149,6 +151,65 @@ class TestDecisions:
             "decision": "edit", "edited_to": other.model_dump_json(by_alias=True)})
         assert r.status_code == 400
         assert "cannot change the rule id" in r.text
+
+    def test_blocking_diagnostics_cannot_be_approved(self, package, store):
+        blocked = package.model_copy(deep=True)
+        blocked.ambiguities[0] = blocked.ambiguities[0].model_copy(update={
+            "blocking": True,
+            "affects": [RULE],
+            "resolution": None,
+        })
+        guarded = TestClient(create_app(blocked, store, reviewer_resolver=lambda request: "alice"))
+
+        response = guarded.post(f"/rule/{RULE}/decide", data={"decision": "approve"})
+
+        assert response.status_code == 409
+        assert store.events(RULE) == []
+
+    def test_parameter_validation_errors_cannot_be_approved(self, package, store):
+        parameter = package.parameters[0].model_copy(update={
+            "values": [*package.parameters[0].values, package.parameters[0].values[0]],
+        })
+        changed = package.model_copy(update={
+            "parameters": [parameter, *package.parameters[1:]],
+        })
+        guarded = TestClient(create_app(changed, store, reviewer_resolver=lambda r: "alice"))
+        rejected = guarded.post(f"/rule/{parameter.id}/decide", data={"decision": "approve"})
+        assert rejected.status_code == 409
+        assert store.events(parameter.id) == []
+
+    def test_semantically_invalid_edit_cannot_bypass_the_approval_guard(self, client,
+                                                                      package, store):
+        correction = package.rule(RULE).model_copy(update={"sources": []})
+        response = client.post(f"/rule/{RULE}/decide", data={
+            "decision": "edit", "edited_to": correction.model_dump_json(by_alias=True),
+        })
+        assert response.status_code == 409
+        assert store.events(RULE) == []
+
+    def test_cookie_authenticated_decisions_require_a_csrf_token(self, package, store):
+        secret = "s" * 48
+        app = create_app(
+            package,
+            store,
+            reviewer_resolver=SignedTokenResolver(secret),
+            csrf_secret=secret,
+        )
+        guarded = TestClient(app)
+        guarded.cookies.set("rw_session", mint_token("alice", secret))
+
+        missing = guarded.post(f"/rule/{RULE}/decide", data={"decision": "approve"})
+        assert missing.status_code == 403
+
+        detail = guarded.get(f"/rule/{RULE}")
+        token = re.search(r'name="csrf_token" value="([^"]+)"', detail.text)
+        assert token is not None
+        accepted = guarded.post(
+            f"/rule/{RULE}/decide",
+            data={"decision": "approve", "csrf_token": token.group(1)},
+            follow_redirects=False,
+        )
+        assert accepted.status_code == 303
 
     def test_history_appears_after_deciding(self, client):
         client.post(f"/rule/{RULE}/decide",
