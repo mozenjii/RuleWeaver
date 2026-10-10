@@ -39,6 +39,11 @@ jobs:
       # Includes the mutation harness. The suite passing is not by itself evidence the
       # rules are protected; the mutation score is, so it is a build gate rather than a
       # report nobody reads.
+      # OpenFisca 45 requires pytest 8. Use a fresh private temporary root for both
+      # this process and its nested runner while that compatibility constraint remains.
+      - name: Create private test temporary root
+        run: echo "PYTEST_DEBUG_TEMPROOT=$(python -c 'import tempfile; print(tempfile.mkdtemp(prefix="ruleweaver-tests-"))')" >> "$GITHUB_ENV"
+
       - name: Run tests
         run: pytest -rs --cov=ruleweaver --cov-report=term-missing --cov-fail-under=80
 
@@ -64,6 +69,11 @@ jobs:
 
       - name: Install without extras
         run: python -m pip install --upgrade pip && pip install -e ".[dev]"
+
+      # OpenFisca 45 requires pytest 8. Use a fresh private temporary root for both
+      # this process and its nested runner while that compatibility constraint remains.
+      - name: Create private test temporary root
+        run: echo "PYTEST_DEBUG_TEMPROOT=$(python -c 'import tempfile; print(tempfile.mkdtemp(prefix="ruleweaver-tests-"))')" >> "$GITHUB_ENV"
 
       - name: Run tests
         run: pytest -rs

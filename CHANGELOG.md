@@ -37,6 +37,7 @@ that matches it (see `.github/workflows/release.yml`).
 
 - Reconcile cookie CSRF tokens and validation guards with rule editing and parameter
   review. Corrected items must pass package validation before an edit is recorded.
+- Give both CI test jobs a fresh private temporary root inherited by nested runners.
 - Restore the 80% coverage gate in the full-extras CI job while retaining separate
   core-install and software-package checks.
 
