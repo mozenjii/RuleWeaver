@@ -43,7 +43,7 @@ OpenFisca / Catala / LegalRuleML / other adapters
 9. **The repository must remain useful even if model vendors change.**
 10. **RuleWeaver must never present itself as an authoritative legal source or legal-advice system.**
 
-## Current status — 2026-08-20
+## Current status — 2026-10-10
 
 ### Decided / researched
 
@@ -77,14 +77,17 @@ OpenFisca / Catala / LegalRuleML / other adapters
 - [x] Reviewer application — clause beside rule, hash-chained audit log, authenticated
       identity.
 - [x] Approval enforced at execution: unapproved rules do not run.
-- [x] OpenFisca adapter — a code generator, per ADR-019.
+- [x] OpenFisca adapter — a code generator, per ADR-019, **executed under OpenFisca and
+      compared against the evaluator**: 13 of 15 rules exported, every exported variable
+      agrees across eight SNAP households.
 - [x] CLI.
+- [x] CI green — test matrix with every extra installed, plus a base-install job.
 
 ### Not built yet
 
-- [ ] **Equivalence evidence for the OpenFisca export.** The generated package is checked
-      structurally and parses. Nobody has run it under OpenFisca and compared the results
-      against the deterministic evaluator, so "exports to OpenFisca" is a structural claim.
+- [ ] **The allotment in the OpenFisca export.** The benefit amount applies only to an
+      income-eligible household, and OpenFisca cannot represent "no value" for the rest,
+      so the rule is refused (ADR-031). Exporting it needs a decision, not more code.
 - [ ] PDF and Akoma Ntoso ingestion.
 - [ ] Parameter extraction — thresholds still come from the hand-encoded package.
 - [ ] Public benchmark.
@@ -96,7 +99,9 @@ See [`docs/01_PROJECT_STATUS.md`](docs/01_PROJECT_STATUS.md) for the detailed st
 ```bash
 python -m venv .venv
 .venv/bin/pip install -e ".[dev]"        # Windows: .venv/Scripts/pip
-pytest                                    # 389 tests
+pytest                                    # 346 tests; the rest skip without extras
+.venv/bin/pip install -e ".[dev,review,openfisca]"
+pytest                                    # 427 tests
 ```
 
 Check a rule package, then run a household through it:
@@ -250,12 +255,33 @@ Every export reports `RW8001`, and the generated module repeats it at the top of
 > zero.
 
 That gap cannot be closed inside the adapter, so it is stated rather than absorbed. It is
-the difference between a model that asks a question and one that issues a denial.
+the difference between a model that asks a question and one that gives an answer — and
+the answer is not always a denial. Leave one member's income blank and OpenFisca reads it
+as no income and calls the household eligible.
 
-**The export has not been executed.** It is generated, it parses, and every variable
-carries its citation. Running it under OpenFisca and comparing the results against the
-deterministic evaluator is the evidence that would make "exports to OpenFisca" a claim
-about behaviour, and that work has not been done.
+**The export is executed.** `tests/test_openfisca_equivalence.py` runs the generated
+package under OpenFisca beside the deterministic evaluator and gives every exported
+variable a verdict: *match*, *mismatch*, or *gap* — the evaluator saying unknown where
+OpenFisca produced a number. Gaps are counted separately so they are never read as
+agreement.
+
+The first run found that the package could not be loaded, accepted no household, inverted
+exception priority, computed the allotment for households its guard excludes, and could
+not read any dimensioned table. Those are fixed and pinned by tests. Two rules are now
+refused with a stated reason: the guarded allotment, and the standard-deduction rule its
+"notwithstanding" clause subsumes.
+
+```python
+from ruleweaver.adapters.openfisca import export
+from ruleweaver.adapters.openfisca.equivalence import compare, load
+
+result = export(package, log=review_log)
+system = load(result, "build/")                  # needs the openfisca extra
+print(compare(package, result, system, evaluator, household))
+```
+
+OpenFisca can only index a table with two or more dimensions when it is a complete grid;
+a sparse one is reported as `RW8007` rather than filled in.
 
 ## Read this documentation in order
 

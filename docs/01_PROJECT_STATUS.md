@@ -1,6 +1,6 @@
 # 01 — Project Status
 
-**Status date:** 2026-08-20  
+**Status date:** 2026-10-10  
 **Phase:** the pipeline runs end to end — verified source, extraction, review gate,
 deterministic evaluation, OpenFisca export
 
@@ -143,12 +143,15 @@ Checked items are built and covered by tests. Everything unchecked is genuinely 
 
 ### Adapters
 
-- [x] OpenFisca mapping specification validated with examples — all 15 fixture rules
-      lower.
+- [x] OpenFisca mapping specification validated with examples — 13 of 15 fixture rules
+      export; the guarded allotment and the overridden standard deduction are refused
+      with a stated reason (ADR-031).
 - [x] OpenFisca code generator — refuses unapproved rules; reports the four-state gap.
 - [ ] OpenFisca test exporter.
-- [ ] equivalence verified by running the generated package under OpenFisca. **Not done.**
-      The adapter's output is checked structurally and parses; nobody has executed it.
+- [x] equivalence verified by running the generated package under OpenFisca —
+      `adapters/openfisca/equivalence.py`, run in CI against openfisca-core 45. Every
+      exported variable agrees across eight SNAP households; a planted float-rounding
+      hazard is reported as a mismatch.
 - [ ] LegalRuleML export — dropped, see ADR-019.
 - [ ] Catala export — reference only, see ADR-019.
 
@@ -201,9 +204,10 @@ Keep these up to date once implementation starts:
 | Golden policy corpora | 1 (SNAP, 15 rules from 7 CFR 271.2, 273.9 and 273.10) |
 | Provenance verified against source | **16/16 spans resolve to verbatim clause text** |
 | Deterministic rule features implemented | 12 expression nodes, exceptions, overrides, 4-state values, trace |
-| Tests | 389 passing (`pytest`) |
+| Tests | 427 passing with every extra; 346 pass and 13 skip on the base install |
 | Mutation score | **22/22 caught (100%)** |
-| Lint / type check | ruff clean, mypy clean (48 files) |
+| Lint / type check | ruff clean, mypy clean (49 files) — both enforced in CI |
+| CI | **Green** since 2026-10-10. It was red on every push from 2026-08-16 |
 | Validators implemented | 41 distinct `RWxxxx` diagnostics across 6 families |
 | Test generators | boundary + date transition |
 | Amendment impact | semantic diff + dependency closure + outcome comparison |
@@ -215,7 +219,7 @@ Keep these up to date once implementation starts:
 | Reviewer identity | Signed tokens or trusted proxy; fails closed with neither |
 | Review gate | Hash-chained append-only log, derived status, seeded-error catch rate |
 | Review application | FastAPI + Jinja, one container; SQLite or PostgreSQL |
-| Approved adapter targets | **1 built (OpenFisca, code generator), equivalence unverified** |
+| Approved adapter targets | **1 built (OpenFisca, code generator), executed and compared** |
 | External contributors | 0 |
 | Public benchmark release | No |
 | First external pilot | No |
@@ -257,13 +261,64 @@ line endings of the snapshots, so the manifest could not verify against the file
 `.gitattributes` now pins them. The check is what made a silent corruption visible, which
 is the argument for running it on every load rather than trusting the checkout.
 
-### Next milestone — equivalence evidence
+### What CI had been hiding, found 2026-10-10
 
-The OpenFisca export is generated and parses. Nobody has run it. Until the generated
-package executes the same scenarios under OpenFisca and the results are compared against
-the deterministic evaluator, "RuleWeaver exports to OpenFisca" is a structural claim, not
-a behavioural one. That comparison is the next thing worth building, and it needs the
-published FNS tables the fixture currently supplies as scenario overrides.
+**CI failed on every push from 2026-08-16 to 2026-10-10.** It installed only the dev
+extra and six test modules needed the review extra, so collection failed and no test ran.
+The 389 passing tests this file reported had not been run by CI in that time.
+
+Underneath: `ruleweaver.approval`, the execution gate, imported FastAPI by way of
+`review/__init__`. On the base install the README describes, `evaluate --require-approval`,
+`export` and `token` all died on `ModuleNotFoundError`. A base-install CI job now catches
+that class of mistake (ADR-030).
+
+Pydantic 2.14 changed how it describes a decimal, and the published schema drifted with no
+change to RuleWeaver. The decimal's schema is now pinned in the IR. The exact-match schema
+test still fails under Pydantic 2.6, the declared floor, for unrelated emission
+differences that predate this; it holds from 2.13.
+
+### What running the OpenFisca export found, 2026-10-10
+
+The generated package had never been executed. Run under openfisca-core 45 beside the
+evaluator, it:
+
+1. could not be loaded by OpenFisca's file loader (a relative import);
+2. declared no input variables, so no household could be entered;
+3. selected exceptions **highest** priority first — the spec says lowest wins, and the
+   fixture has one exception per rule, so nothing could see it;
+4. dropped the allotment's guard and computed a benefit amount for households that fail
+   the income test;
+5. emitted the overridden standard-deduction rule beside its override, as two classes
+   with one name, correct only by file order;
+6. applied every rule to months before it was law;
+7. could not read any dimensioned table — the index helper was not vectorised;
+8. could not index the fixture's sparse test tables at all, because OpenFisca requires a
+   complete grid.
+
+All eight are fixed or refused with a diagnostic, and pinned by tests. A blank income is
+read by OpenFisca as no income and makes a household **eligible** — `RW8001` now says the
+gap can approve as well as deny.
+
+### Open findings — need a decision
+
+- **`--partial` ignores a "notwithstanding" clause that is not yet approved.**
+  `approved_subset` drops the unapproved overriding rule, so the rule it overrides runs
+  instead. With `rule.snap.standard_deduction_minimum` unapproved, the baseline household
+  gets a standard deduction of 180, below the 204 statutory minimum, where the answer
+  should be unknown. Proposed fix: withhold any approved rule that an unapproved rule
+  overrides. Not made, because it changes what the gate releases.
+- **The allotment is not exported.** OpenFisca cannot represent "no value" for an
+  ineligible household. Exporting it as zero would be the `RW8001` gap applied to the
+  benefit amount itself; that is a policy call (ADR-031).
+- **Rounding up after binary-float arithmetic can be a dollar off.** 100 × 0.07 rounds up
+  to 8 in OpenFisca and 7 in the evaluator. The SNAP gross limit has that shape and does
+  not trip it for any of the 1,000 poverty-line values that make it a whole dollar, but
+  nothing in the adapter prevents it in general.
+
+### Next milestone
+
+The OpenFisca YAML test exporter: write the equivalence households out as OpenFisca's own
+test format, so the evidence travels with the exported package.
 
 ## Known risks already identified
 

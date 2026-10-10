@@ -1,17 +1,16 @@
 # 10 — Backlog
 
-> **Status, 2026-08-20.** 83 of 134 items are done. `docs/01_PROJECT_STATUS.md` is the
+> **Status, 2026-10-10.** 85 of 134 items are done. `docs/01_PROJECT_STATUS.md` is the
 > authority on what is built; this file is the plan. An item is ticked only when there is
 > an implementation *and* a test — a backlog that overstates progress is worse than one
 > nobody updated, because someone will trust it.
 >
-> Every P0 is done. The type checker was the last one: validators resolved references and
-> detected cycles, but nothing checked that an expression's operand types could meet, so a
-> comparison between a money value and a date passed validation. `RW2003`-`RW2008` now
-> reject it.
+> Every P0 is done. Epic K's differential test harness, the P1 this file called most
+> valuable, is built: the OpenFisca export is executed beside the evaluator in CI, and its
+> first run found eight defects the structural tests had passed. See the status file.
 >
-> The most valuable P1 left is **Epic K's differential test harness** — the missing
-> evidence for the OpenFisca adapter, see ADR-029. Everything else is breadth.
+> The most valuable P1 left is the **OpenFisca YAML test export**, so the equivalence
+> evidence ships with the generated package. Everything else is breadth.
 
 Legend:
 
@@ -149,11 +148,11 @@ Legend:
 - [x] **P1** variables mapping.
 - [x] **P1** parameters mapping.
 - [x] **P1** expression-to-formula generator.
-- [ ] **P1** formula/date mapping.
+- [x] **P1** formula/date mapping — formulas dated from `effective_from`, `end` from `effective_to`.
 - [ ] **P1** YAML test export.
 - [x] **P1** package scaffold output.
 - [ ] **P1** target validation.
-- [ ] **P1** differential test harness.
+- [x] **P1** differential test harness — `adapters/openfisca/equivalence.py`, run in CI.
 
 ## Epic L — Amendment/change impact
 

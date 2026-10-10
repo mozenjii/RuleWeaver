@@ -577,6 +577,71 @@ would make this a claim about behaviour. Until then it is a claim about structur
 
 ---
 
+## ADR-030 — The base install is a tested deployment
+
+**Status:** accepted (2026-10-10)
+
+A deployment that only executes approved rules installs neither the model SDKs nor the web
+stack. Packaging already said so; nothing tested it. For three weeks the execution gate
+imported FastAPI through `review/__init__`, and CI — which installed the base package and
+then failed at collection — never ran a test that would have shown it.
+
+### Decision
+
+- CI has two jobs. The matrix installs every extra and runs everything, plus ruff and mypy.
+  The second installs the base package alone and runs the suite there.
+- Tests that need an extra skip with a reason when it is absent. Tests that check the core
+  without an extra block the extra's imports in a subprocess, so they hold on machines
+  where it is installed.
+- An extra's import is deferred to the code that needs it. `identity` imports FastAPI only
+  to build an HTTP refusal.
+- The published schema's shape for a decimal is declared in the IR, not inherited from
+  whichever Pydantic is installed.
+
+---
+
+## ADR-031 — The OpenFisca export is executed, and what cannot be faithful is refused
+
+**Status:** accepted (2026-10-10). **Supersedes** the exception-order sentence of ADR-029.
+
+ADR-029 said a substitutive exception "becomes `np.select` over the conditions in
+descending priority". That inverted the IR: `04_RULE_IR_SPEC.md` says the
+**lowest-numbered** matching exception wins, and the evaluator does that. The cases are now
+ascending. The fixture has one exception per rule, so no structural test and no SNAP
+scenario could see the difference; a synthetic two-exception case now does.
+
+### Decision
+
+1. **The export is run, not only parsed.** `equivalence.compare` evaluates a household with
+   the evaluator and with the generated package under OpenFisca, and gives each exported
+   variable one of three verdicts: match, mismatch, or gap. A gap is the evaluator saying
+   unknown where OpenFisca produced a number — the `RW8001` case. It is reported apart from
+   matches so it can never be counted as agreement.
+2. **A guarded rule is refused**, for the same reason as `disable_base_rule`. When its guard
+   does not hold, the rule assigns nothing; OpenFisca would show the type default. The
+   guard used to be dropped, so the allotment was computed for ineligible households.
+   This leaves the allotment out of the export until someone decides that zero is an
+   acceptable rendering of "not eligible, so no allotment" — a policy call, not an
+   adapter one.
+3. **An overridden rule is subsumed** by the rule overriding it, as in the evaluator.
+4. **Formulas are dated** from `effective_from`; `effective_to` becomes OpenFisca's
+   inclusive `end`, one day earlier.
+5. **New refusals**: a rule needing a variable that is not exported (transitively), a
+   second formula for one variable, two ids that become one OpenFisca name (`RW8006`), and
+   a dimensioned table that is not a complete grid (`RW8007`). OpenFisca cannot index a
+   sparse table, and filling the gaps would be inventing policy.
+6. **Comparison happens on the first of a month.** OpenFisca reads parameters at the start
+   of the period and the evaluator on the day; comparing mid-month would blame the adapter
+   for a mid-month parameter change.
+
+### Known limit
+
+OpenFisca computes money in binary floats. Rounding up after float arithmetic can be off
+by a whole unit: 100 × 0.07 rounds up to 8, not 7. The harness reports this — a planted
+case proves it — but the adapter does not prevent it.
+
+---
+
 ## Pending ADRs
 
 These should be decided with examples/tests, not prematurely:
