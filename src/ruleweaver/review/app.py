@@ -21,6 +21,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -101,6 +102,21 @@ def create_app(
     default for a library caller; `ruleweaver review` turns it on at 10%.
     """
     app = FastAPI(title="RuleWeaver review", docs_url=None, redoc_url=None)
+
+    @app.middleware("http")
+    async def refuse_cross_site_posts(request: Request, call_next):
+        """A decision submitted from another site is refused (CSRF).
+
+        A browser sends Origin on a cross-site form POST, so a page elsewhere cannot make
+        a signed-in reviewer's browser record an approval. Clients that send neither
+        Origin nor Referer — scripts, tests — are not browsers and are allowed.
+        """
+        if request.method == "POST":
+            claimed = request.headers.get("origin") or request.headers.get("referer")
+            if claimed and urlsplit(claimed).netloc != request.headers.get("host", ""):
+                return JSONResponse({"detail": "cross-site request refused"},
+                                    status_code=403)
+        return await call_next(request)
     templates = Jinja2Templates(directory=str(TEMPLATES))
     # Fails closed when nothing is configured. Recording approvals against an
     # identity the client chose is worse than refusing to start: it produces a
@@ -150,6 +166,7 @@ def create_app(
 
     @app.get("/", response_class=HTMLResponse)
     def queue(request: Request):
+        resolve_reviewer(request)
         rows: list[dict[str, Any]] = [
             {
                 "rule": rule,
@@ -171,6 +188,7 @@ def create_app(
 
     @app.get("/rule/{rule_id}", response_class=HTMLResponse)
     def detail(request: Request, rule_id: str):
+        resolve_reviewer(request)
         if package.rule(rule_id) is None:
             raise HTTPException(404, f"unknown rule: {rule_id}")
         log = store.load_log()
@@ -233,6 +251,7 @@ def create_app(
 
     @app.get("/metrics", response_class=HTMLResponse)
     def metrics(request: Request):
+        resolve_reviewer(request)
         queue = current_queue()
         for seed in store.seeds():
             from .adversarial import SeededError

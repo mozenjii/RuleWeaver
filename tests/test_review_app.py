@@ -228,3 +228,27 @@ class TestMetricsPage:
         with store.engine.begin() as conn:
             conn.execute(text("UPDATE review_events SET reviewer = 'mallory'"))
         assert "Chain broken" in client.get("/metrics").text
+
+
+class TestHardening:
+    def test_every_page_needs_an_identity(self, package, store):
+        from fastapi import HTTPException
+
+        def nobody(request):
+            raise HTTPException(401, "no reviewer identity")
+
+        anonymous = TestClient(create_app(package, store, reviewer_resolver=nobody))
+        for path in ("/", f"/rule/{RULE}", "/metrics"):
+            assert anonymous.get(path).status_code == 401, path
+        assert anonymous.get("/healthz").status_code == 200
+
+    def test_a_cross_site_decision_is_refused(self, client):
+        """A page elsewhere must not be able to make a reviewer's browser approve."""
+        r = client.post(f"/rule/{RULE}/decide", data={"decision": "approve"},
+                        headers={"Origin": "https://evil.example"})
+        assert r.status_code == 403
+
+    def test_a_same_site_decision_is_accepted(self, client):
+        r = client.post(f"/rule/{RULE}/decide", data={"decision": "approve"},
+                        headers={"Origin": "http://testserver"}, follow_redirects=False)
+        assert r.status_code == 303

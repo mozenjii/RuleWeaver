@@ -433,8 +433,10 @@ def cmd_serve(args) -> int:
 
     print(f"serving {len(packages)} package(s): {', '.join(sorted(packages))}")
     print(f"database: {engine.url.render_as_string(hide_password=True)}")
-    print(f"http://{args.host}:{args.port}/docs\n")
-    uvicorn.run(create_api(packages, engine), host=args.host, port=args.port,
+    print(f"http://{args.host}:{args.port}" + ("/docs" if args.docs else "") + "\n")
+    api = create_api(packages, engine, docs=args.docs,
+                     requests_per_minute=args.rate_limit or None)
+    uvicorn.run(api, host=args.host, port=args.port,
                 log_level="warning")
     return 0
 
@@ -599,6 +601,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("packages", nargs="+", help="rule package(s) to serve")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8080)
+    p.add_argument("--docs", action="store_true",
+                   help="serve interactive API docs at /docs (off by default)")
+    p.add_argument("--rate-limit", type=int, default=600,
+                   help="requests per minute per API key; 0 for no limit")
     p.add_argument("--database", default=None,
                    help="approvals, keys and usage (default: RULEWEAVER_DATABASE_URL)")
     p.set_defaults(func=cmd_serve)

@@ -264,3 +264,33 @@ class TestKeyCommand:
         key_id = listing.split()[0]
         assert main(["api-key", "--database", database, "revoke", key_id]) == 0
         assert main(["api-key", "--database", database, "revoke", key_id]) == 1
+
+
+class TestHardening:
+    def test_validation_errors_do_not_echo_household_data(self, api, auth):
+        body = {**BASELINE, "members": BASELINE["members"] * 20}
+        body["members"][0] = {**body["members"][0], "var.member.earned_income": "98765"}
+        response = evaluate(api, auth, body)
+        assert response.status_code == 422
+        assert "98765" not in response.text
+
+    def test_an_oversized_body_is_refused(self, package, engine, auth):
+        small = TestClient(create_api({PACKAGE_ID: package}, engine, max_body_bytes=200))
+        assert evaluate(small, auth).status_code == 413
+
+    def test_requests_are_rate_limited_per_key(self, package, engine, keys):
+        limited = TestClient(create_api({PACKAGE_ID: package}, engine,
+                                        requests_per_minute=2))
+        _, one = keys.create("acme")
+        _, two = keys.create("globex")
+        first = {"Authorization": f"Bearer {one}"}
+        assert [limited.get("/v1/packages", headers=first).status_code
+                for _ in range(3)] == [200, 200, 429]
+        assert limited.get("/v1/packages",
+                           headers={"Authorization": f"Bearer {two}"}).status_code == 200
+
+    def test_docs_are_off_unless_asked_for(self, package, engine):
+        assert TestClient(create_api({PACKAGE_ID: package}, engine)).get(
+            "/docs").status_code == 404
+        assert TestClient(create_api({PACKAGE_ID: package}, engine, docs=True)).get(
+            "/docs").status_code == 200

@@ -31,9 +31,9 @@ up to what the project should be able to claim.
 
 | ID | Requirement | Pri | Status | Source |
 |---|---|---|---|---|
-| R-12 | SECURITY.md, a disclosure policy and a security contact | P0 | ⬜ | #01 #02 #06 #16 #19 |
+| R-12 | SECURITY.md, a disclosure policy and a security contact | P0 | ✅ | #01 #02 #06 #16 #19 |
 | R-13 | SBOM, signed release artefacts, pinned actions and base image, least-privilege release job, dependency scanning | P1 | ⬜ | #03 #04 #11 #16 #20 |
-| R-14 | Review app: CSRF/Origin check, identity on read pages. API: request size and rate limits, `/docs` switchable, validation errors that do not echo household data | P0 | ⬜ | #13 #16 #20 |
+| R-14 | Review app: CSRF/Origin check, identity on read pages. API: request size and rate limits, `/docs` switchable, validation errors that do not echo household data | P0 | ✅ | #13 #16 #20 |
 | R-15 | Container health check works for both applications | P0 | ✅ | #16 |
 
 ## C. Content, ingestion and the core product

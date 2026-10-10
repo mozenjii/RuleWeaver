@@ -25,11 +25,14 @@ query parameter instead of an authentication check.
 """
 
 import copy
+import time
+from collections import defaultdict, deque
 from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -55,6 +58,7 @@ NOTICE = (
 )
 
 MAX_MEMBERS = 50
+MAX_BODY_BYTES = 1_000_000
 
 
 class EvaluateRequest(BaseModel):
@@ -114,7 +118,9 @@ def _coerce(package: RulePackage, values: dict[str, Any], where: str,
     return out, errors
 
 
-def create_api(packages: dict[str, RulePackage], engine: Engine) -> FastAPI:
+def create_api(packages: dict[str, RulePackage], engine: Engine, *,
+               docs: bool = False, max_body_bytes: int = MAX_BODY_BYTES,
+               requests_per_minute: int | None = 600) -> FastAPI:
     """The service over `packages`, reading approvals and keys from `engine`.
 
     Packages are loaded by the operator, not uploaded by customers: a rule package is the
@@ -125,7 +131,26 @@ def create_api(packages: dict[str, RulePackage], engine: Engine) -> FastAPI:
     package_hashes = {pid: digest(p.model_dump(mode="json"))
                       for pid, p in packages.items()}
     app = FastAPI(title="RuleWeaver", version=__version__,
-                  description="Approved, source-linked rules, evaluated deterministically.")
+                  description="Approved, source-linked rules, evaluated deterministically.",
+                  docs_url="/docs" if docs else None, redoc_url=None,
+                  openapi_url="/openapi.json" if docs else None)
+    recent: dict[str, deque[float]] = defaultdict(deque)
+
+    @app.middleware("http")
+    async def limit_body(request: Request, call_next):
+        length = request.headers.get("content-length")
+        if length is not None and (not length.isdigit() or int(length) > max_body_bytes):
+            return JSONResponse({"detail": f"request body over {max_body_bytes} bytes"},
+                                status_code=413)
+        return await call_next(request)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_without_echo(request: Request, exc: RequestValidationError):
+        """FastAPI's default 422 echoes the offending input back. Here that input is a
+        household's income and disability status, so only where and why are returned."""
+        return JSONResponse(status_code=422, content={"detail": [
+            {"loc": list(error.get("loc", ())), "msg": error.get("msg", ""),
+             "type": error.get("type", "")} for error in exc.errors()]})
 
     def caller(request: Request) -> ApiKey:
         authorization = request.headers.get("Authorization", "")
@@ -134,6 +159,15 @@ def create_api(packages: dict[str, RulePackage], engine: Engine) -> FastAPI:
         if key is None:
             raise HTTPException(401, "a valid API key is required",
                                 headers={"WWW-Authenticate": "Bearer"})
+        if requests_per_minute is not None:
+            now = time.monotonic()
+            window = recent[key.id]
+            while window and now - window[0] > 60:
+                window.popleft()
+            if len(window) >= requests_per_minute:
+                raise HTTPException(429, "rate limit exceeded",
+                                    headers={"Retry-After": "60"})
+            window.append(now)
         return key
 
     Caller = Annotated[ApiKey, Depends(caller)]
