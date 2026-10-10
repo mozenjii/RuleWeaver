@@ -15,22 +15,58 @@ jobs:
         python-version: ["3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
+      # The review extra is installed here because the gate is tested here: the audit log,
+      # the reviewer application and reviewer identity. Without it those tests skip, and a
+      # suite that skips the gate is not evidence the gate works.
       - name: Install
+        run: python -m pip install --upgrade pip && pip install -e ".[dev,review]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Type check
+        run: mypy
+
+      # Includes the mutation harness. The suite passing is not by itself evidence the
+      # rules are protected; the mutation score is, so it is a build gate rather than a
+      # report nobody reads.
+      - name: Run tests
+        run: pytest -rs
+
+      - name: Validate the golden corpus
+        run: ruleweaver validate examples/snap/rules.json
+
+      - name: Check the fixture still evaluates
+        run: ruleweaver evaluate examples/snap/rules.json examples/snap/scenarios/baseline.json
+
+  # A deployment that only executes approved rules installs neither the model SDKs nor the
+  # web stack. This job is that deployment. It exists because for three weeks the
+  # execution gate imported FastAPI, and nothing ran the base install to notice.
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install without extras
         run: python -m pip install --upgrade pip && pip install -e ".[dev]"
 
       - name: Run tests
-        run: pytest
+        run: pytest -rs
 
-      # The suite passing is not by itself evidence the rules are protected. The
-      # mutation score is, so it is a build gate rather than a report nobody reads.
       - name: Validate the golden corpus
         run: ruleweaver validate examples/snap/rules.json
 

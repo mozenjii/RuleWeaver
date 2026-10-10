@@ -13,7 +13,9 @@ readme = "README.md"
 dependencies = ["pydantic>=2.6"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "ruff>=0.14", "mypy>=1.13"]
+# httpx2 is the client Starlette's TestClient now requires. It is only exercised when the
+# review extra is installed too, and is harmless without it.
+dev = ["pytest>=8.0", "ruff>=0.14", "mypy>=1.13", "httpx2>=2.0"]
 # Model providers are optional extras. The core compiler, evaluator and validators
 # never import them, so a deployment that only executes approved rules installs
 # neither SDK — which is ADR-003 enforced by packaging rather than by convention.
