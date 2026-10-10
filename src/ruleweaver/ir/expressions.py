@@ -12,7 +12,16 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, WithJsonSchema
+
+# How a decimal appears in the published schema. Pinned here because the schema is
+# RuleWeaver's contract, not a by-product of whichever Pydantic is installed: 2.14 stopped
+# emitting the numeric-string pattern, and the published schema drifted without a line of
+# RuleWeaver changing. Validation is untouched — this is only what the schema says.
+JsonDecimal = Annotated[Decimal, WithJsonSchema({"anyOf": [
+    {"type": "number"},
+    {"type": "string", "pattern": r"^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$"},
+]})]
 
 
 class ExprBase(BaseModel):
@@ -23,7 +32,7 @@ class Lit(ExprBase):
     """A constant. Numbers arrive as Decimal, never binary float."""
 
     op: Literal["literal"]
-    value: bool | Decimal | int | str | None
+    value: bool | JsonDecimal | int | str | None
 
 
 class Ref(ExprBase):

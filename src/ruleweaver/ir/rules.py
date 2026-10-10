@@ -6,12 +6,11 @@ The IR is the public contract; adapters lower from it and never redefine it.
 
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .expressions import Expr
+from .expressions import Expr, JsonDecimal
 
 
 class Base(BaseModel):
@@ -50,7 +49,7 @@ class Variable(Base):
 class ParameterValue(Base):
     effective_from: str
     effective_to: str | None = None
-    value: Decimal | str | bool
+    value: JsonDecimal | str | bool
     # Dimension coordinates this value applies at, e.g. {"household_size": "3"}.
     at: dict[str, str] = Field(default_factory=dict)
 
