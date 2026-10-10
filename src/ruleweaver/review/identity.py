@@ -29,8 +29,10 @@ import hashlib
 import hmac
 import os
 import time
+from typing import TYPE_CHECKING
 
-from fastapi import HTTPException, Request
+if TYPE_CHECKING:
+    from fastapi import Request
 
 SESSION_COOKIE = "rw_session"
 DEFAULT_TTL_SECONDS = 8 * 60 * 60
@@ -55,6 +57,19 @@ class IdentityNotConfigured(Exception):
             "Refusing to start rather than recording approvals against an identity "
             "anyone can claim."
         )
+
+
+def _rejected(status: int, detail: str) -> Exception:
+    """An HTTP refusal, with FastAPI imported only at the moment one is raised.
+
+    Minting and verifying a token is standard library. Only the reviewer application
+    refuses requests, so only it needs FastAPI — and the execution gate, which reads the
+    review log through this package, must not stop working on an install that never
+    asked for a web server.
+    """
+    from fastapi import HTTPException
+
+    return HTTPException(status, detail)
 
 
 def _b64(raw: bytes) -> str:
@@ -97,24 +112,24 @@ class SignedTokenResolver:
             payload = _unb64(encoded_payload)
             signature = _unb64(encoded_signature)
         except Exception as exc:
-            raise HTTPException(401, "malformed session token") from exc
+            raise _rejected(401, "malformed session token") from exc
 
         expected = hmac.new(self._secret, payload, hashlib.sha256).digest()
         # Constant time: a comparison that returns early leaks the signature one byte at
         # a time to anyone who can measure it.
         if not hmac.compare_digest(signature, expected):
-            raise HTTPException(401, "session token signature does not verify")
+            raise _rejected(401, "session token signature does not verify")
 
         try:
             reviewer, expires = payload.decode().rsplit("|", 1)
             deadline = int(expires)
         except Exception as exc:
-            raise HTTPException(401, "malformed session payload") from exc
+            raise _rejected(401, "malformed session payload") from exc
 
         if time.time() > deadline:
-            raise HTTPException(401, "session token has expired")
+            raise _rejected(401, "session token has expired")
         if not reviewer:
-            raise HTTPException(401, "session token names no reviewer")
+            raise _rejected(401, "session token names no reviewer")
         return reviewer
 
     def __call__(self, request: Request) -> str:
@@ -123,7 +138,7 @@ class SignedTokenResolver:
             return self.verify(authorization[7:].strip())
         token = request.cookies.get(self._cookie)
         if not token:
-            raise HTTPException(401, "no session token")
+            raise _rejected(401, "no session token")
         return self.verify(token)
 
 
@@ -149,11 +164,11 @@ class TrustedProxyResolver:
         if peer not in self._trusted:
             # Deliberately not naming the header. A caller that is not the proxy has no
             # business learning which header would have worked.
-            raise HTTPException(403, "requests are only accepted from the authenticating "
-                                     "proxy")
+            raise _rejected(403, "requests are only accepted from the authenticating "
+                                 "proxy")
         reviewer = request.headers.get(self._header)
         if not reviewer:
-            raise HTTPException(401, "the proxy did not supply a reviewer identity")
+            raise _rejected(401, "the proxy did not supply a reviewer identity")
         return reviewer
 
 
@@ -180,7 +195,7 @@ class InsecureReviewerResolver:
     def __call__(self, request: Request) -> str:
         reviewer = request.headers.get("X-Reviewer") or request.cookies.get("reviewer")
         if not reviewer:
-            raise HTTPException(401, "no reviewer identity")
+            raise _rejected(401, "no reviewer identity")
         return reviewer
 
 
