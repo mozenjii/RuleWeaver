@@ -5,13 +5,14 @@ got. This is a scratch record, not documentation: the project's real state lives
 `docs/01_PROJECT_STATUS.md`, `research/REQUIREMENTS.md` and `CHANGELOG.md`. Delete this
 directory once it stops being useful.
 
-Last updated: 2026-10-10, at commit `9060e4f` (76 commits on the branch).
+Last updated: 2026-10-10. Pulled baseline: `77184e6`; last code change: `9060e4f`.
 
 ## Standing instructions from the owner
 
 - Every commit is authored as **Mozenjii <mhbamdm@gmail.com>**, the only contributor.
-  No `Co-Authored-By`, no session links, no mention of an AI assistant in commits.
-- Work only through GitHub. Develop on `claude/project-continuation-8yt9bp`.
+  No co-author trailers, session links or tooling attribution in published text.
+- Develop only on `claude/project-continuation-8yt9bp`; local work and ordinary pushes
+  to that branch are authorised. Never reset, discard or force-push state.
 - **Do not** merge, open a pull request or cut a release yet ("Not yet").
 - Make the code back every claim; do not drop a claim because the code cannot do it yet.
   Commercialising can wait. The goal is a first version that works and that people like.
@@ -74,9 +75,70 @@ Last updated: 2026-10-10, at commit `9060e4f` (76 commits on the branch).
 - Before each push: `ruff check src tests`, `mypy src`, and `pytest` on both an
   all-extras and a base install. Update `research/REQUIREMENTS.md` and `CHANGELOG.md`.
 
-## Handoff to the local session
+## Local inventory and merge
 
-`memory/LOCAL_SESSION_PROMPT.md` is the prompt for the Claude Code session on the
-owner's machine: pull first, merge any local memory into this file, then revise the
-architecture and documentation to the revised plan (ADR-032, R-25). The cloud session
-leaves the docs alone until that is pushed, so the two do not conflict.
+The initial checkout was clean, with no stash and no repository memory directory.
+The former local branch was `mozenji/production-readiness-foundation` at `15a9d06`;
+it remains intact. No backup branch or directory move was needed. The requested
+branch fast-forwarded to `77184e6`. The configured remote still uses the old repository
+name, NICXON; it was not changed.
+
+The local project-memory directory named `D--Code-NICXON` contains six files:
+`MEMORY.md`, `ruleweaver-state.md`, `commit-incrementally.md`,
+`no-tooling-config-in-repo.md`, `codex-app-not-cli.md` and
+`gstack-decision-slug-windows.md`. All were read. The repository's local instruction
+file imports the owner contract; local launch settings start the reviewer on port
+8123; settings and the enforcement hook contain tooling configuration, not additional
+product decisions. Local permission settings were inspected without publishing their
+contents. No secrets or runtime database records were copied.
+
+Other projects' memory directories were inventoried but not imported: their project
+facts do not belong here. The old local notes remain untouched; the local instruction
+file now points here as the shared handoff record.
+
+Retained guidance: commit one coherent document or theme at a time, stage explicit
+paths, keep local tooling out of version control, check source byte hashes on Windows,
+use contiguous quotations, and preserve repeated CFR marker levels. Source line endings
+are pinned by `.gitattributes`; ingestion and provenance tests protect the latter two.
+Desktop tooling may not have its command-line executable installed; detect actual
+availability before using an external review process. The old Windows decision-log
+slug warning is historical and must be rechecked before applying its workaround.
+
+## Reconciled
+
+- The old index says the proposal layer is absent and its state note reports 317 tests.
+  The current modules implement segmentation and extraction; the pulled baseline
+  expects 554 tests with the installed extras. Repository and fresh verification win.
+- The local note says OpenFisca is absent. The code generator, YAML exporter and
+  differential harness are now present, per ADR-031 and the adapter tests. Agreement
+  with the native evaluator is consistency evidence, not independent policy truth.
+- The local note describes an insecure default reviewer header. The current default
+  refuses to start without signed sessions or a configured trusted proxy. Individually
+  bound identity and author/approver separation remain unbuilt (R-06).
+- The local note says lint and type checking are absent. Both are configured and pass;
+  mypy checks 55 source files. Invoke through `.venv/Scripts/python.exe -m mypy` locally.
+- The old SNAP monetisation rationale and complete-pipeline wording do not establish
+  product readiness. The owner's revised plan prioritises a good self-hosted compiler,
+  change impact and independent verification, rather than an outreach deadline.
+- Old authentication/CLI-availability notes are not current verification or a reason
+  to bypass the owner's no-PR/no-release boundary.
+- After switching, pre-existing `.codex/` and `.coverage` became visible as untracked
+  because this branch has different ignore rules. Preserve them locally, never stage them.
+
+## Local verification and next work
+
+Installation: editable `.[dev,review,openfisca]` in the existing Python 3.11 environment.
+Ruff passes; mypy passes on 55 source files. The first test run failed because the
+nested OpenFisca runner collected across drives and reached a protected Windows junction.
+All three runner tests pass with a fresh repository-local `--basetemp` under
+`.pytest_cache/`. No project code or dependency source was changed. Use this invocation
+for the full suite and record its result before pushing:
+
+```powershell
+$taskTemp = Join-Path (Get-Location) ('.pytest_cache/run-' + [guid]::NewGuid().ToString('N'))
+.venv/Scripts/python.exe -m pytest --basetemp $taskTemp -o addopts='' -q
+```
+
+Next: documentation-only revised plan, ADR-032, intended-purpose revision R-25, and
+Built / Partial / Planned evidence. The handoff instructions are in
+`memory/LOCAL_SESSION_PROMPT.md`. Do not fix code as part of this pass.
