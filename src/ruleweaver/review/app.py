@@ -23,8 +23,9 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import text
 
 from ..approval import rule_digest, source_digest
 from ..ir.rules import RulePackage
@@ -89,6 +90,21 @@ def create_app(
             rule_hash=_rule_hash(package, rule_id),
             source_hash=_source_hash(package, rule_id),
         )
+
+    @app.get("/healthz")
+    def healthz():
+        """For a load balancer or orchestrator. Checks the audit log can be reached.
+
+        A review application that serves pages but cannot write decisions is down, not
+        degraded, so an unreachable database is a 503 rather than a cheerful "ok".
+        Unauthenticated, and says nothing about the rules or reviewers.
+        """
+        try:
+            with store.engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+        except Exception:
+            return JSONResponse({"status": "unavailable"}, status_code=503)
+        return {"status": "ok"}
 
     @app.get("/", response_class=HTMLResponse)
     def queue(request: Request):

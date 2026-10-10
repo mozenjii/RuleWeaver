@@ -40,6 +40,27 @@ def client(package, store) -> TestClient:
     return TestClient(app)
 
 
+class TestHealth:
+    def test_reports_ok_when_the_audit_log_is_reachable(self, client):
+        response = client.get("/healthz")
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+    def test_reports_unavailable_when_it_is_not(self, package, store, tmp_path):
+        """Serving pages while unable to record decisions is down, not degraded."""
+        client = TestClient(create_app(package, store,
+                                       reviewer_resolver=lambda request: "alice"))
+        assert client.get("/healthz").status_code == 200
+
+        store.engine.dispose()
+        from sqlalchemy import create_engine
+
+        store.engine = create_engine(f"sqlite:///{tmp_path / 'no-such-dir' / 'review.db'}")
+        response = client.get("/healthz")
+        assert response.status_code == 503
+        assert response.json() == {"status": "unavailable"}
+
+
 class TestQueue:
     def test_lists_every_rule(self, client, package):
         body = client.get("/").text

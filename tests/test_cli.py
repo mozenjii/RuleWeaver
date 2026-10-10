@@ -13,6 +13,16 @@ from ruleweaver.ir import RulePackage
 SCENARIO = FIXTURE.parent / "scenarios" / "baseline.json"
 
 
+class TestVersion:
+    def test_reports_the_package_version(self, capsys):
+        from ruleweaver import __version__
+
+        with pytest.raises(SystemExit) as exit_info:
+            main(["--version"])
+        assert exit_info.value.code == 0
+        assert capsys.readouterr().out.strip() == f"ruleweaver {__version__}"
+
+
 class TestValidate:
     def test_fixture_validates(self, capsys):
         assert main(["validate", str(FIXTURE)]) == 0
@@ -205,6 +215,18 @@ class TestIngestCommand:
 
         assert main(["validate", str(path), "--sources", str(self.MANIFEST)]) == 1
         assert "RW1001" in capsys.readouterr().out
+
+
+@needs_review_log
+class TestReviewCommand:
+    def test_an_unreachable_audit_log_is_one_readable_line(self, tmp_path, capsys,
+                                                            monkeypatch):
+        monkeypatch.setenv("RULEWEAVER_SESSION_SECRET", "s" * 48)
+        database = f"sqlite:///{tmp_path / 'no-such-dir' / 'review.db'}"
+        assert main(["review", str(FIXTURE), "--database", database]) == 1
+        err = capsys.readouterr().err
+        assert err.startswith("cannot open the audit log: OperationalError")
+        assert "Traceback" not in err
 
 
 class TestTokenCommand:

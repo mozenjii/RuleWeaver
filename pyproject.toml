@@ -1,6 +1,7 @@
 [project]
 name = "ruleweaver"
-version = "0.1.0"
+# The version lives in src/ruleweaver/__init__.py and nowhere else.
+dynamic = ["version"]
 description = "A compiler for turning natural-language rules and regulations into provenance-preserving, testable, executable rule representations."
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
@@ -31,6 +32,8 @@ review = [
     "uvicorn>=0.32",
     "python-multipart>=0.0.9",
 ]
+# The PostgreSQL driver, for a review deployment whose audit log outlives one container.
+postgres = ["psycopg[binary]>=3.1"]
 
 # OpenFisca runs the exported country package in the equivalence harness. Pinned to the
 # major version the harness has been run against: the generated code uses its entity,
@@ -43,6 +46,9 @@ ruleweaver = "ruleweaver.cli:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/ruleweaver/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ruleweaver"]

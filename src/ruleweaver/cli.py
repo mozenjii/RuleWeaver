@@ -20,7 +20,7 @@ import sys
 from decimal import Decimal
 from pathlib import Path
 
-from . import InvalidPackage, load
+from . import InvalidPackage, __version__, load
 from .approval import approved_subset, check
 from .diff import analyse, compare
 from .ingest import CorpusError, load_corpus
@@ -347,7 +347,16 @@ def cmd_review(args) -> int:
     from .review.identity import IdentityNotConfigured
 
     package = _load_or_exit(args.package, verify=not args.no_verify)
-    store = ReviewStore(build_engine(args.database))
+    try:
+        store = ReviewStore(build_engine(args.database))
+    except Exception as exc:
+        # A database that cannot be reached is an operator's problem to fix, and the
+        # traceback buries the one line they need. SQLAlchemy masks the password.
+        print(f"cannot open the audit log: {exc.__class__.__name__}: {exc}".splitlines()[0],
+              file=sys.stderr)
+        print("  set --database or RULEWEAVER_DATABASE_URL to a reachable database",
+              file=sys.stderr)
+        return 1
     try:
         app = create_app(package, store, seed_rate=args.seed_rate, salt=args.salt)
     except IdentityNotConfigured as exc:
@@ -355,7 +364,10 @@ def cmd_review(args) -> int:
         return 1
 
     print(f"reviewing {len(package.rules)} rules from {args.package}")
-    print(f"audit log: {args.database or 'sqlite:///ruleweaver-review.db'}")
+    # The URL the store actually opened — the flag, the environment, or the default —
+    # with any password masked. A PostgreSQL URL carries its credentials, and startup
+    # output ends up in logs.
+    print(f"audit log: {store.engine.url.render_as_string(hide_password=True)}")
     print(f"http://{args.host}:{args.port}\n")
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0
@@ -402,6 +414,7 @@ def cmd_schema(args) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="ruleweaver", description=__doc__.split("\n")[0])
+    parser.add_argument("--version", action="version", version=f"ruleweaver {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("validate", help="check a rule package and report diagnostics")
