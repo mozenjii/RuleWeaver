@@ -24,9 +24,8 @@ Last updated: 2026-10-10, at commit `9060e4f` (76 commits on the branch).
 - Tests: 554 pass with all extras (`.[dev,review,openfisca]`). On the base install, 403
   pass and 16 skip. ruff and mypy are clean.
 - CI (`.github/workflows/tests.yml`): Python 3.11–3.13 matrix with every extra, a
-  base-install job, and a package job that builds the wheel and Docker image. It was
-  green up to `a44615a`. The runs for `2845e08` and `9060e4f` were still in progress
-  when this was written; check them first.
+  base-install job, and a package job that builds the wheel and Docker image. Green on
+  `9060e4f`, the last code change. Check the latest run before starting.
 
 ## Done in this stretch, in order
 
