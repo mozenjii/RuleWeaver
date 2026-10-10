@@ -73,7 +73,9 @@ OpenFisca / Catala / LegalRuleML / other adapters
 - [x] LLM compilation — clause segmentation and rule extraction, behind six checks the
       model cannot talk its way past.
 - [x] Provider-neutral model interface (Claude + GPT) with prompt-injection guard.
-- [x] Adversarial review gate — seeded errors, catch rate, rubber-stamp detection.
+- [~] Adversarial review gate — catch-rate and rubber-stamp metrics are built and
+      tested, **but the reviewer application does not yet plant seeded faults**, so
+      in real use the catch rate is always *unmeasured*.
 - [x] Reviewer application — clause beside rule, hash-chained audit log, authenticated
       identity.
 - [x] Approval enforced at execution: unapproved rules do not run.
@@ -148,10 +150,14 @@ Approvals expire on their own: they are recorded against the hash of the clause 
 cites, so re-fetching a source that has changed moves every rule resting on it back into
 the queue.
 
-`/metrics` reports the numbers that decide whether the gate is real — the share of
-deliberately seeded faults reviewers caught, the median time spent per rule, and the
-approval rate. It warns when those look like rubber-stamping. An unseeded queue is
-reported as *unmeasured*, not as a zero catch rate; the two mean opposite things.
+`/metrics` reports the median time spent per rule and the approval rate, and warns when
+those look like rubber-stamping. It is built to report the share of deliberately seeded
+faults reviewers caught, but **the application does not plant seeded faults yet**: the
+seeding logic exists and is tested on its own, and nothing in the app calls it. So the
+catch rate always reads *unmeasured* — correctly, since an unseeded queue measures
+nothing. Wiring it in is deferred until reviewers are told such tests exist and the
+per-person metrics are made aggregate by default, because scoring named reviewers is
+employee monitoring under GDPR and works-council rules.
 
 **The bundled identity resolver trusts a header and warns that it is unfit for
 deployment.** Wire in a real identity provider before running this anywhere real — an
