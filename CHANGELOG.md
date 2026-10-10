@@ -6,6 +6,18 @@ that matches it (see `.github/workflows/release.yml`).
 
 ## Unreleased
 
+### Product plan and documentation
+
+- Define the self-hosted compiler and verifier scope in ADR-032, with separately
+  versioned content packs, change-impact reports and independent known-answer parity.
+- Revise ADR-021/022 and the intended-purpose statement (R-25); record commercial
+  legal review as pending rather than treating the proposed posture as a conclusion.
+- Align specifications, architecture, roadmap, backlog and repository layout with
+  Built / Partial / Planned evidence. Record expired FY2026 coverage, larger-household
+  gaps and missing source-version binding instead of claiming current policy readiness.
+- Reconcile local project memory with the current implementation and verification.
+
+
 ### Content
 
 - The SNAP example computes. It carries the official FY2026 tables for the 48 states and
